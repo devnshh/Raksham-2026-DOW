@@ -193,3 +193,19 @@ def test_health_endpoint(client: TestClient):
     assert data["database"] == "healthy"
     assert "intact" in data["audit_chain"]
 
+
+
+def test_reporting_from_a_warning_cancels_that_case(client: TestClient):
+    case = client.post("/v1/risk/assess", json={"user_ref": "raksham@oksbi", "payee_vpa": "amaz0n-refund-desk@okaxis",
+                                                "amount": 3000.0, "session": {"on_call": False}}).json()
+    r = client.post("/v1/report", json={"reporter_id": "raksham@oksbi", "payee_vpa": "amaz0n-refund-desk@okaxis",
+                                         "reason": "Reported from the red pause", "case_id": case["case_id"]})
+    assert r.status_code == 200
+    detail = client.get(f"/v1/cases/{case['case_id']}").json()
+    assert detail["status"] == "cancelled" and detail["evidence_pack"]["user_reported_scam"]
+    # Someone else's case is never touched.
+    other = client.post("/v1/risk/assess", json={"user_ref": "default_user", "payee_vpa": "amaz0n-refund-desk@okaxis",
+                                                 "amount": 3000.0, "session": {"on_call": False}}).json()
+    client.post("/v1/report", json={"reporter_id": "raksham@oksbi", "payee_vpa": "amaz0n-refund-desk@okaxis",
+                                    "reason": "x", "case_id": other["case_id"]})
+    assert client.get(f"/v1/cases/{other['case_id']}").json()["status"] == "open"

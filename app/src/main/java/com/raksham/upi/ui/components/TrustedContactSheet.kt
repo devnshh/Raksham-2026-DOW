@@ -3,6 +3,7 @@ package com.raksham.upi.ui.components
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import com.raksham.risk.model.PlainReason
 import com.raksham.upi.ui.formatAmount
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
@@ -41,7 +42,9 @@ private fun whatsAppIntent(text: String) =
 fun TrustedContactSheet(
     contactFirstName: String = "Aarav",
     payeeName: String,
+    payeeVpa: String,
     amount: Double,
+    facts: List<PlainReason>,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -50,8 +53,21 @@ fun TrustedContactSheet(
     val formattedAmount = formatAmount(amount)
     val colors = MaterialTheme.colorScheme
 
-    val messageEn = "$contactFirstName, I am about to send ₹$formattedAmount to $payeeName (new account). Is this safe?"
-    val messageHi = "$contactFirstName, मैं $payeeName को ₹$formattedAmount भेज रहा हूँ। क्या यह सुरक्षित है?"
+    // Everything the bank found, so the contact can judge with full context. They are asked to call
+    // back on the user's own number: the caller may still be on the line.
+    val payee = if (payeeName.isNotBlank() && payeeName != payeeVpa) "$payeeName ($payeeVpa)" else payeeVpa
+    val messageEn = buildString {
+        append("$contactFirstName, my bank app has paused a payment as a likely scam. Please check before I pay:\n")
+        append("- ₹$formattedAmount to $payee\n")
+        facts.forEach { append("- ${it.en}\n") }
+        append("Is this safe? Please call me back on my own number.")
+    }
+    val messageHi = buildString {
+        append("$contactFirstName, मेरे बैंक ऐप ने इस भुगतान को धोखाधड़ी की आशंका से रोका है। भुगतान से पहले कृपया जांचें:\n")
+        append("- ₹$formattedAmount, $payee को\n")
+        facts.forEach { append("- ${it.hi}\n") }
+        append("क्या यह सुरक्षित है? कृपया मुझे मेरे अपने नंबर पर वापस कॉल करें।")
+    }
 
     fun send(intent: Intent, via: String) {
         try {

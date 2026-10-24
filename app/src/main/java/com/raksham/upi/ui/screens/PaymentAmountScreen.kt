@@ -455,6 +455,7 @@ fun PaymentAmountScreen(
             if (showRedSmartPause && currentDecision != null) {
                 RedSmartPauseDialog(
                     decision = currentDecision!!,
+                    payeeName = contact.name,
                     payeeVpa = contact.upiId,
                     amount = parsedAmount,
                     onHangUpAndCancel = {

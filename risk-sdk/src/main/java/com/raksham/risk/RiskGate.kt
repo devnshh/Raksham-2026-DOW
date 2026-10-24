@@ -8,6 +8,7 @@ import com.raksham.risk.model.RiskTier
 import com.raksham.risk.net.PaymentCompletePayload
 import com.raksham.risk.net.RiskApiClient
 import com.raksham.risk.session.SessionSignalSourceProvider
+import com.raksham.risk.session.SessionSignals
 import com.raksham.risk.session.SessionTracker
 import com.raksham.risk.template.ReasonMapper
 import kotlinx.coroutines.CoroutineScope
@@ -72,8 +73,26 @@ object RiskGate {
             caseId = response.case_id,
             isCheckUnavailable = isUnavailable,
             sessionUnderPressure = signals.on_call || signals.screen_shared ||
-                signals.remote_app_present || signals.remote_app_new
+                signals.remote_app_present || signals.remote_app_new,
+            factsForTrustedContact = sessionFacts(signals) +
+                response.reasons.filter { it.uppercase() !in SESSION_CODES }.map { ReasonMapper.mapCodeToPlainReason(it, payment) }
         )
+    }
+
+    /** Session reasons are replaced by sessionFacts, which also say who is on the call. */
+    private val SESSION_CODES = setOf("ON_CALL", "SCREEN_SHARED", "REMOTE_APP_NEW", "REMOTE_APP_PRESENT", "REMOTE_APP_ACTIVE")
+
+    internal fun sessionFacts(s: SessionSignals): List<PlainReason> = buildList {
+        if (s.on_call) add(
+            when (s.caller_in_contacts) {
+                true -> PlainReason("I am on a call with a saved contact", "मैं एक सेव किए गए संपर्क से फोन पर बात कर रहा हूँ")
+                false -> PlainReason("I am on a call with someone who is not in my contacts", "मैं किसी ऐसे व्यक्ति से फोन पर बात कर रहा हूँ जो मेरे संपर्कों में नहीं है")
+                null -> PlainReason("I am on a call", "मैं फोन पर बात कर रहा हूँ")
+            }
+        )
+        if (s.screen_shared) add(PlainReason("My screen is being shared", "मेरी स्क्रीन शेयर हो रही है"))
+        if (s.remote_app_new) add(PlainReason("A remote-access app was installed on my phone today", "आज मेरे फोन पर एक रिमोट-एक्सेस ऐप इंस्टॉल हुआ है"))
+        else if (s.remote_app_present) add(PlainReason("A remote-access app is on my phone", "मेरे फोन पर एक रिमोट-एक्सेस ऐप है"))
     }
 
     /** Sends the red-tier answer for this case. Returns false if it could not be delivered. */
@@ -135,6 +154,13 @@ object RiskGate {
             runCatching { apiClient.warmUp() }
                 .onFailure { Log.w("RiskGate", "Risk API not reachable at warm-up", it) }
         }
+    }
+
+    /** Reports the payee as a scam and marks this case cancelled. Runs outside the screen's lifetime, so it
+     *  still completes after the warning closes and the user is sent to the dialer or browser. */
+    fun reportScamInBackground(caseId: String, payeeVpa: String) {
+        val case = caseId.takeUnless { it.isBlank() || it.startsWith("local-offline") }
+        backgroundScope.launch { runCatching { apiClient.reportScam(lastUserRef, payeeVpa, case) } }
     }
 
     /** Fire-and-forget version of [reportPaymentCompleted] for UI callbacks. */

@@ -20,7 +20,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -39,9 +38,10 @@ fun ReportScamSheet(
     amount: Double,
     reasons: List<PlainReason>,
     caseId: String,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    /** Cancels the payment, files the report, then opens [intent] (the dialer or the portal). */
+    onReportAndLeave: (intent: Intent) -> Unit
 ) {
-    val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -99,12 +99,7 @@ fun ReportScamSheet(
 
             // Primary: call 1930 (ACTION_DIAL intent)
             Button(
-                onClick = {
-                    val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                        data = Uri.parse("tel:1930")
-                    }
-                    context.startActivity(dialIntent)
-                },
+                onClick = { onReportAndLeave(Intent(Intent.ACTION_DIAL, Uri.parse("tel:1930"))) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 56.dp)
@@ -119,10 +114,7 @@ fun ReportScamSheet(
 
             // Open cybercrime.gov.in (ACTION_VIEW intent)
             FilledTonalButton(
-                onClick = {
-                    val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://cybercrime.gov.in"))
-                    context.startActivity(browserIntent)
-                },
+                onClick = { onReportAndLeave(Intent(Intent.ACTION_VIEW, Uri.parse("https://cybercrime.gov.in"))) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 56.dp)

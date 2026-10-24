@@ -55,6 +55,14 @@ internal data class QuestionnairePayload(
 internal data class AppealPayload(val user_ref: String)
 
 @Serializable
+internal data class ReportPayload(
+    val reporter_id: String,
+    val payee_vpa: String,
+    val reason: String,
+    val case_id: String? = null
+)
+
+@Serializable
 internal data class PaymentCompletePayload(
     val case_id: String,
     val user_ref: String,
@@ -149,6 +157,13 @@ internal class RiskApiClient(
         )
         val (code, text) = post(path, body, 800, 800)
         if (code in 200..299) json.decodeFromString<AssessmentNetworkResponse>(text) else null
+    }
+
+    /** Scam report on a payee; with the case it came from, the server marks that case cancelled. */
+    suspend fun reportScam(userRef: String, payeeVpa: String, caseId: String?): Boolean = withContext(Dispatchers.IO) {
+        val body = json.encodeToString(ReportPayload(userRef, payeeVpa, "Reported from a warning in the app", caseId))
+        val (code, _) = post("/v1/report", body, 800, 800)
+        code in 200..299
     }
 
     /** "This was me" (amber) or "Report a false alarm" (red, decline): action is "appeal" or "false-alarm". */

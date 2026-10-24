@@ -231,7 +231,7 @@ async function loadCases() {
       el("td", {}, el("div", { class: "vpa" }, c.payee_vpa), el("div", { class: "reasons" }, c.user_ref)),
       el("td", { class: "amt" }, rupees(c.amount)),
       el("td", { class: "reasons" }, c.reasons.map(label).join(", ") || "None"),
-      el("td", {}, c.status === "completed" ? "Paid" : "Not paid", dispute(c)));
+      el("td", {}, c.status === "completed" ? "Paid" : c.status === "cancelled" ? "Cancelled, reported as scam" : "Not paid", dispute(c)));
     const open = () => openPayee(c.payee_vpa);
     tr.addEventListener("click", open);
     tr.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });

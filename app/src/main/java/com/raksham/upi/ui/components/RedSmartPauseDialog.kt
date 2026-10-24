@@ -1,5 +1,9 @@
 package com.raksham.upi.ui.components
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.CheckCircle
+import android.content.Intent
+import android.content.ActivityNotFoundException
 import com.raksham.upi.ui.formatAmount
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -73,6 +77,7 @@ private fun Modifier.riseIn(entered: Boolean, index: Int): Modifier {
 @Composable
 fun RedSmartPauseDialog(
     decision: RiskDecision,
+    payeeName: String,
     payeeVpa: String,
     amount: Double,
     onHangUpAndCancel: () -> Unit,
@@ -81,6 +86,8 @@ fun RedSmartPauseDialog(
 ) {
     val coroutineScope = rememberCoroutineScope()
     var showTrustedContactSheet by remember { mutableStateOf(false) }
+    var leavingWith by remember { mutableStateOf<Intent?>(null) }
+    val context = LocalContext.current
     var showReportSheet by remember { mutableStateOf(false) }
     var showFinalReleaseWarning by remember { mutableStateOf(false) }
 
@@ -469,8 +476,10 @@ fun RedSmartPauseDialog(
             if (showTrustedContactSheet) {
                 TrustedContactSheet(
                     contactFirstName = "Aarav",
-                    payeeName = payeeVpa,
+                    payeeName = payeeName,
+                    payeeVpa = payeeVpa,
                     amount = amount,
+                    facts = decision.factsForTrustedContact,
                     onDismiss = { showTrustedContactSheet = false }
                 )
             }
@@ -482,8 +491,32 @@ fun RedSmartPauseDialog(
                     amount = amount,
                     reasons = decision.reasons,
                     caseId = decision.caseId,
-                    onDismiss = { showReportSheet = false }
+                    onDismiss = { showReportSheet = false },
+                    onReportAndLeave = { intent ->
+                        showReportSheet = false
+                        leavingWith = intent
+                    }
                 )
+            }
+
+            // Reporting from the pause: cancel the payment first and say so, then hand over to the dialer
+            // or browser. The report (with this case) goes to the bank in the background.
+            leavingWith?.let { intent ->
+                val toHelpline = intent.action == Intent.ACTION_DIAL
+                PaymentCancelledOverlay(
+                    openingEn = if (toHelpline) "Opening the 1930 helpline..." else "Opening cybercrime.gov.in...",
+                    openingHi = if (toHelpline) "1930 हेल्पलाइन खोली जा रही है..." else "cybercrime.gov.in खोली जा रही है..."
+                )
+                LaunchedEffect(intent) {
+                    RiskGate.reportScamInBackground(decision.caseId, payeeVpa)
+                    delay(1600L)
+                    try {
+                        context.startActivity(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        // No dialer or browser: the payment is still cancelled and the report still sent.
+                    }
+                    onHangUpAndCancel()
+                }
             }
 
             // Release-after-hold: final warning before the PIN screen. "Back to safety" is the filled choice.
@@ -528,6 +561,54 @@ fun RedSmartPauseDialog(
                     }
                 )
             }
+        }
+    }
+}
+
+/** "Payment cancelled" acknowledgement shown for a moment before the dialer or browser opens. */
+@Composable
+private fun PaymentCancelledOverlay(openingEn: String, openingHi: String) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val scale by animateFloatAsState(
+        targetValue = if (shown) 1f else 0.6f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "cancelledCheck"
+    )
+    val colors = MaterialTheme.colorScheme
+    Surface(color = colors.surface, modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp)
+                .semantics { liveRegion = LiveRegionMode.Assertive },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = null,
+                tint = colors.tertiary,
+                modifier = Modifier
+                    .size(96.dp)
+                    .graphicsLayer { scaleX = scale; scaleY = scale }
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            BilingualText(
+                en = "Payment cancelled",
+                hi = "भुगतान रद्द कर दिया गया",
+                style = MaterialTheme.typography.headlineMedium,
+                color = colors.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            BilingualText(
+                en = "No money was sent. $openingEn",
+                hi = "कोई पैसा नहीं भेजा गया। $openingHi",
+                style = MaterialTheme.typography.bodyLarge,
+                color = colors.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

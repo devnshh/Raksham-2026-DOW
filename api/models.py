@@ -79,6 +79,8 @@ class ReportRequest(BaseModel):
     payee_vpa: str
     reason: str
     notes: Optional[str] = ""
+    # Reporting from a warning: the reporter's own case for this payee, which is then marked cancelled.
+    case_id: Optional[str] = None
 
 
 class ReportResponse(BaseModel):
@@ -115,7 +117,7 @@ class CaseResponse(BaseModel):
     template_id: str
     hold_minutes: int
     created_at: str
-    status: str = "open"  # "open", or "completed" once the app reported the payment done
+    status: str = "open"  # "open", "completed" once paid, or "cancelled" when the user reported it as a scam
     dispute: Optional[str] = None  # "this_was_me", "false_alarm_pending" or "false_alarm_accepted"
     evidence_pack: Optional[dict[str, Any]] = None
 

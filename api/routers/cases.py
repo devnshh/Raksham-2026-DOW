@@ -15,6 +15,10 @@ from api.security import require_analyst_key
 router = APIRouter(prefix="/v1", tags=["cases"], dependencies=[Depends(require_analyst_key)])
 
 
+def _status(evidence: Dict[str, Any]) -> str:
+    return "completed" if evidence.get("completed") else "cancelled" if evidence.get("cancelled") else "open"
+
+
 @router.get("/cases", response_model=List[CaseResponse])
 def list_cases(
     tier: Optional[str] = Query(None, description="Filter by risk tier: red, amber, green, decline"),
@@ -47,7 +51,7 @@ def list_cases(
                 template_id=r["template_id"],
                 hold_minutes=int(r["hold_minutes"]),
                 created_at=r["created_at"],
-                status="completed" if evidence.get("completed") else "open",
+                status=_status(evidence),
                 dispute=evidence.get("dispute")
             )
         )
@@ -86,7 +90,7 @@ def get_case_evidence(
         template_id=row["template_id"],
         hold_minutes=int(row["hold_minutes"]),
         created_at=row["created_at"],
-        status="completed" if evidence_pack.get("completed") else "open",
+        status=_status(evidence_pack),
         dispute=evidence_pack.get("dispute"),
         evidence_pack=evidence_pack
     )
