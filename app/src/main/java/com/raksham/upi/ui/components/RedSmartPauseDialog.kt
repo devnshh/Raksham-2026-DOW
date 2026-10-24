@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
 import com.raksham.risk.RiskGate
 import com.raksham.risk.model.RiskDecision
 import com.raksham.upi.ui.theme.*
@@ -129,7 +130,11 @@ fun RedSmartPauseDialog(
         properties = DialogProperties(
             dismissOnBackPress = false,
             dismissOnClickOutside = false,
-            usePlatformDefaultWidth = false
+            usePlatformDefaultWidth = false,
+            // Secure window (FLAG_SECURE): screen sharing, casting, recording and screenshots show it blank, so a
+            // scammer watching the screen cannot read the warning or see which button is tapped. The user sees it normally.
+            // The trusted-contact and report sheets are drawn inside this window, so they are covered too.
+            securePolicy = SecureFlagPolicy.SecureOn
         )
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -485,6 +490,7 @@ fun RedSmartPauseDialog(
             if (showFinalReleaseWarning) {
                 AlertDialog(
                     onDismissRequest = { showFinalReleaseWarning = false },
+                    properties = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn),  // its own window: secure too
                     title = {
                         BilingualText(
                             en = "Final Caution Notice",

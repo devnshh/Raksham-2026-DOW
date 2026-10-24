@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.SecureFlagPolicy
 import com.raksham.upi.data.BankAccount
 import com.raksham.upi.ui.theme.*
 
@@ -45,6 +46,8 @@ fun NpciPinBottomSheet(
             onDismiss()
         },
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        // Secure window, as NPCI's real PIN pad: screen sharing and recording cannot show the PIN being typed.
+        properties = ModalBottomSheetDefaults.properties(securePolicy = SecureFlagPolicy.SecureOn),
         containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = null
     ) {

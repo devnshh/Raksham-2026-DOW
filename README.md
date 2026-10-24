@@ -75,6 +75,7 @@ ANDROID_HOME=~/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexe
 - **UPI PIN:** any 6 digits.
 - **Money tab:** transaction history. **You tab:** profile, bank accounts and, in debug builds, the **Simulation Lab**: the API address, a **custom scenario** form (any UPI ID, amount, entry channel, on a call, screen shared, new remote-access app, note) that opens the real payment screen so Pay shows the real amber, red or decline screen, and scripted scenarios scored against the API. The custom toggles apply to that one payment only.
 - Satark stays invisible on normal payments. It appears only as the amber warning, the red pause or the decline screen, in English and Hindi.
+- Those warning screens and the PIN pad are secure windows: screen sharing, casting, screen recording and screenshots show them black, so a scammer watching the screen cannot read the warning or see what is tapped. The user sees them normally. (On the emulator, `adb shell screencap` shows black while the warning is on the display.)
 - **Ask my trusted contact** (on the red pause) opens the phone's SMS app or WhatsApp with the question already written; the user picks the contact and the reply arrives there. The pause keeps counting down meanwhile.
 - **Appeals:** the amber warning offers "This was me, I know this payee": later ambers for that payee are not shown (never during a call or remote session, and not after the payee is reported again). The red pause and the decline screen offer only "Report a false alarm", which sends the case to the analyst console and changes nothing until an analyst clicks **Accept appeal**.
 
@@ -140,6 +141,7 @@ Android unit tests (with Gradle JDK 17):
 
 - The model and thresholds come from our own simulator, not real bank data. Numbers are simulation results, not real-world accuracy.
 - Screen sharing is detected only as an extra display (casting or mirroring); `device_new` and failed PIN attempts are not measured in this demo.
+- Hiding warnings from screen sharing stops the scammer reading them, not noticing that one appeared (the shared screen goes dark); apps with accessibility access can still read on-screen text.
 - The caller check works for incoming phone calls only: outgoing and internet (WhatsApp) calls have no number, and the check needs call-state, call-log and contacts permissions (Simulation Lab → Caller check → Allow). Without an answer the call counts as from an unknown caller. Google Play restricts call-log access, so a store release would need another way to get the number.
 - On an emulator, simulate a call with `adb emu gsm call <number>` and answer it with `adb emu gsm accept <number>`.
 - QR scanning is simulated (sample codes, no camera). The Simulation Lab's scripted scenarios only report Pass or Fail; use the custom scenario form to see the warning screens.

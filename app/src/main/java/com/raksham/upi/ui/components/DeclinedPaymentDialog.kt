@@ -20,6 +20,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
 import com.raksham.risk.RiskGate
 import com.raksham.risk.model.RiskDecision
 import kotlinx.coroutines.launch
@@ -39,6 +41,9 @@ fun DeclinedPaymentDialog(
 
     AlertDialog(
         onDismissRequest = onClose,
+        // Secure window (FLAG_SECURE): screen sharing, casting, recording and screenshots show it blank, so a
+        // scammer watching the screen cannot read the warning or see which button is tapped. The user sees it normally.
+        properties = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn),
         icon = {
             Box(
                 modifier = Modifier

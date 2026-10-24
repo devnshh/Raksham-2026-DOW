@@ -20,6 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.SecureFlagPolicy
 import com.raksham.risk.model.PlainReason
 import com.raksham.risk.model.RiskDecision
 import com.raksham.upi.ui.templates.TemplateRegistry
@@ -100,6 +101,9 @@ fun AmberWarningDialog(
     ModalBottomSheet(
         onDismissRequest = onCancel,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        // Secure window (FLAG_SECURE): screen sharing, casting, recording and screenshots show it blank, so a
+        // scammer watching the screen cannot read the warning or see which button is tapped. The user sees it normally.
+        properties = ModalBottomSheetDefaults.properties(securePolicy = SecureFlagPolicy.SecureOn),
         containerColor = MaterialTheme.colorScheme.surface
     ) {
         Column(
