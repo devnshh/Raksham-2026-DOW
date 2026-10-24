@@ -10,6 +10,7 @@ Simulation results on an unseen synthetic world, not real-world accuracy. Warnin
 |---|---|---|---|---|---|---|---|---|
 | 1 | 2026-10-24 06:41 | 8ac337d136 | 0502ccf91630 | f5fa4fcb5910 | 29.4% / 95.1% | 0.7% / 90.2% / 42.14 | 95.3% / 71.3% | `ml/results/holdout_run1.json` |
 | 2 | 2026-10-24 16:03 | e5ff5d8154 | cfd7d027a7a9 | 8131fb36a3e7 | 29.9% / 96.5% | 6.2% / 95.8% / 4.92 | 96.3% / 72.0% | `ml/results/holdout_run2.json` |
+| 3 | 2026-10-24 21:10 | 3e1791a590 | cfd7d027a7a9 | 8131fb36a3e7 | 29.9% / 96.5% | 5.7% / 95.8% / 5.38 | 96.3% / 72.0% | `ml/results/holdout_run3.json` |
 
 ## Run 1: named failure cases
 
@@ -77,3 +78,13 @@ Written before run 3. Chosen on validation worlds (seeds 33, 44, 55), never the 
 - **Validation, model plus policy, warning level, before and after:** seed 33 recall 96.5% both, 5.02 to 5.49 warnings per 1,000, precision 6.3% to 5.8%; seed 44 recall 95.0% both, 5.03 to 5.40; seed 55 recall 93.5% to 94.2% (one more scam), 5.14 to 5.63.
 - **Also fixed, no effect on this replay:** the app's "Pay anyone" flow sent entry channel `phone_number`, which the model never saw; it now sends `typed_vpa` or `contact`, and the server maps unknown channels to `typed_vpa`.
 - Run 3 is reported whatever it shows.
+
+## Run 3: named failure cases
+
+Written after run 3 from `ml/results/holdout_run3.json`. Nothing was changed in response.
+
+Model plus policy: recall 95.8% (run 2: 95.8%), precision 5.7% (6.2%), 5.4 warnings per 1,000 (4.9), false-alarm rate 0.51% (0.46%); red precision 96.3%, recall 72.0% (unchanged). Every journey got a warning; the same 6 scam payments were missed (5 calm, no-call scams below the cut-off, 1 skipped by the eligibility gate). The stranger rule caught no extra scam on the holdout.
+
+- **Cost of the stranger rule:** emergency payments to a new person went from 15% to 34% warned (269); second-hand purchases from 5% to 6%; on-call genuine payments from 0.56% to 0.79%. This is the price of warning on Rs 25,000 or more to someone who is not a saved contact; the warning is one tap.
+- **Screen sharing and remote-access installs** remain the largest source of false alarms (1,314 and 442, all warned).
+- **Fairness:** every age band, language, phone tier and screen-reader group is between 0.48% and 0.55% (overall 0.51%).
