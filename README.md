@@ -92,6 +92,21 @@ A brand-new handle typed live gets a warning, not a red pause: red needs corrobo
 
 The model looks at the hour of day. The demo user often pays between 13:00 and 15:59, so at those hours the fake CBI notice scores just under the red cut-off and shows the amber warning instead. Demo-data change for the retrained model (`ml/train.py`): the seeded `electricity-rebate@oksbi` payee now has 3 prior reports instead of 1, which keeps that journey red at every hour.
 
+### Mule caught (analyst console)
+
+1. Open `http://127.0.0.1:8000/console` and paste the analyst key the start script printed.
+2. Run the burst: 15 new payers pay `quickloan.agent@ybl` over about a minute, each through a real risk check and payment completion. The cases appear in the console as they arrive.
+
+```bash
+python scripts/mule_burst.py
+```
+
+3. Click any `quickloan.agent@ybl` case. The payee view shows the new payers in the last 24 hours and in the last 10 minutes.
+4. Enter an analyst ID and click **Confirm scam**, then change the ID and confirm again: two different analysts must confirm.
+5. In the app: Bank transfer → `quickloan.agent@ybl` → any amount. The payment is blocked, and the declined case shows up in the console.
+
+**Clear** withdraws all confirmations (one analyst is enough); reports stay on record. Confirm and clear are both written to the audit log.
+
 ## Tests
 
 ```bash
