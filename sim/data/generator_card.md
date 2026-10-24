@@ -55,6 +55,7 @@ otherwise; plan assumption A6 asks you to re-tune thresholds with key rates at h
 | `false_report_per_day` | 0.0003333333333333333 | legit payee falsely reported (misuse case) |
 | `victim_share` | {'train': 0.15, 'test': 0.012} | train is oversampled; test lands near 1 scam per 2,000 to 4,000 payments |
 | `evasive_share` | 0.2 | journeys that use one evasion |
+| `caller_in_contacts` | {'legit': 0.85, 'new_individual': 0.5, 'new_tenancy': 0.5, 'item_purchase': 0.3, 'emergency': 0.7, 'scam': 0.05, 'task_scam': 0.3, 'investment': 0.3, 'fake_qr': 0.2} | assumption (added at the finale): share of payments made on a call where the other person is a saved contact. Family and known shops for most legit calls; new landlords, sellers and hospitals less often; scam callers rarely, except long task/investment cons and QR buyers |
 
 ## Scam workflows
 
@@ -72,7 +73,7 @@ Evasions (one per evasive journey): hang_up_first, aged_mule, no_link, calm_vict
 
 ## Columns
 
-- **A_session**: on_call, screen_shared, remote_app_present, remote_app_new, app_switches, typing_z, pause_z, pin_time_z, device_new, failed_auth
+- **A_session**: on_call, caller_in_contacts, screen_shared, remote_app_present, remote_app_new, app_switches, typing_z, pause_z, pin_time_z, device_new, failed_auth
 - **B_payee**: payee_first_time, payee_age_days, payee_verified, payee_new_payers_24h, payee_reports_prior, lookalike_score
 - **C_context**: entry_channel, link_bad, link_domain_age_days, secs_link_to_pay, note_text
 - **D_baseline**: amount, amount_ratio, amount_z, amount_vs_max, hour, hour_familiarity, same_payee_count_24h, same_payee_sum_24h, escalation_ratio, baseline_ready

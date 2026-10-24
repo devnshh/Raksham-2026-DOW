@@ -44,7 +44,9 @@ def world(role, seed, users=USERS):
         raise ValueError(f"seed {seed} is the {fixed.get(seed, 'fresh')} world, not {role}")
     path = DATA / f"{role}_seed{seed}_u{users}.parquet"
     if path.exists():
-        return pd.read_parquet(path)
+        df = pd.read_parquet(path)
+        if set(INPUTS) <= set(df.columns):  # a cache from before a simulator change is regenerated
+            return df
     df = generate("train" if role == "train" else "test", seed, users)
     df["world"] = role
     DATA.mkdir(parents=True, exist_ok=True)

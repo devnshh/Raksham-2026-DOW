@@ -75,6 +75,11 @@ P = {
     "false_report_per_day": (1 / 3000, "legit payee falsely reported (misuse case)"),
     "victim_share": ({"train": .15, "test": .012}, "train is oversampled; test lands near 1 scam per 2,000 to 4,000 payments"),
     "evasive_share": (.2, "journeys that use one evasion"),
+    "caller_in_contacts": ({"legit": .85, "new_individual": .5, "new_tenancy": .5, "item_purchase": .3,
+                            "emergency": .7, "scam": .05, "task_scam": .3, "investment": .3, "fake_qr": .2},
+                           "assumption (added at the finale): share of payments made on a call where the other person "
+                           "is a saved contact. Family and known shops for most legit calls; new landlords, sellers "
+                           "and hospitals less often; scam callers rarely, except long task/investment cons and QR buyers"),
 }
 
 
@@ -111,8 +116,8 @@ SCEN = {
 EVASIONS = ["hang_up_first", "aged_mule", "no_link", "calm_victim"]
 
 FEATURES = {
-    "A_session": ["on_call", "screen_shared", "remote_app_present", "remote_app_new", "app_switches",
-                  "typing_z", "pause_z", "pin_time_z", "device_new", "failed_auth"],
+    "A_session": ["on_call", "caller_in_contacts", "screen_shared", "remote_app_present", "remote_app_new",
+                  "app_switches", "typing_z", "pause_z", "pin_time_z", "device_new", "failed_auth"],
     "B_payee": ["payee_first_time", "payee_age_days", "payee_verified", "payee_new_payers_24h",
                 "payee_reports_prior", "lookalike_score"],
     "C_context": ["entry_channel", "link_bad", "link_domain_age_days", "secs_link_to_pay", "note_text"],
@@ -166,7 +171,7 @@ def lookalike(handle, verified):
 
 class World:
     def __init__(self, name, seed, n_users):
-        self.name, self.n_users = name, n_users
+        self.name, self.n_users, self.seed = name, n_users, seed
         self.rng = np.random.default_rng(seed)
         self.days = p("days")
         self.pk, self.pc, self.pv, self.ph, self.pl, self.pa, self.pu = [], [], [], [], [], [], []
@@ -514,6 +519,18 @@ class World:
             rts = ts + r.uniform(*p("report_delay_h")) * 3600
             self.reports += [(rts, pe) for pe in used]
 
+    def caller_in_contacts(self, df):
+        """1 when the payment is made on a call and the other person is a saved contact, else 0. Drawn from
+        its own random stream, one draw per row, so adding it changes no other column of an existing world."""
+        rates = p("caller_in_contacts")
+        prob = np.full(len(df), rates["legit"])
+        for tag in ("new_individual", "new_tenancy", "item_purchase", "emergency"):  # later tags win
+            prob[df.hard_negative.str.contains(tag, regex=False).to_numpy()] = rates[tag]
+        scam = (df.is_scam == 1).to_numpy()
+        prob[scam] = [rates.get(sc, rates["scam"]) for sc in df.scenario[scam]]
+        u = np.random.default_rng([self.seed, 1729]).random(len(df))
+        return ((df.on_call == 1).to_numpy() & (u < prob)).astype(int)
+
     # point-in-time features -------------------------------------------------------------------
     def featurize(self):
         ev = pd.DataFrame(self.events)
@@ -590,6 +607,7 @@ class World:
         df["day"] = (df.ts // DAY).astype(int)
         df["warmup"] = (df.day < p("warmup_days")).astype(int)
         df["world"] = self.name
+        df["caller_in_contacts"] = self.caller_in_contacts(df)
         cols = META + [c for fam in FEATURES.values() for c in fam if c not in META]
         return df[cols + ["typing_ms", "pauses", "pin_secs"]]
 
