@@ -1,8 +1,6 @@
 """
-satark_scorer.py: serving wrapper for the EXISTING trained bundle (satark_model.joblib).
-No retraining.
+satark_scorer.py: serving wrapper for the trained bundle (satark_model.joblib, built by ml/train.py).
 """
-import argparse
 import json
 import warnings
 from pathlib import Path
@@ -91,7 +89,7 @@ def _is_risky(col, row):
 
 class SatarkScorer:
     def __init__(self, model_path, thresholds_path=None):
-        self.b = joblib.load(model_path)
+        self.b = model_path if isinstance(model_path, dict) else joblib.load(model_path)
         self.cols = self.b["feature_columns"]
         self.tab_cols = self.b["tabular_columns"]
         self.thr = json.loads(Path(thresholds_path).read_text()) if thresholds_path else None
@@ -135,34 +133,8 @@ class SatarkScorer:
                 reasons.append(code)
         return {"fusion_score": s, "tier_hint": self._tier(s), "reasons": reasons}
 
-    def score_frame(self, df):
-        """Batch scoring of a dataframe that already has the simulator columns (for tests)."""
-        feats = df.to_dict("records")
-        X = self._frame(feats, df["note_intent"].fillna("none").tolist())
+    def score_frame(self, df, intents):
+        """Batch scoring of a dataframe with the simulator feature columns. `intents` must be what the
+        phone would send (keyword rules on the note text), never the simulator's note_intent label."""
+        X = self._frame(df.to_dict("records"), list(intents))
         return self.b["fusion_model"].predict_proba(X)[:, 1]
-
-
-def make_thresholds(model, data_dir, out):
-    d = Path(data_dir)
-    p = d / "test.parquet"
-    te = pd.read_parquet(p) if p.exists() else pd.read_csv(d / "test.csv.gz", low_memory=False)
-    te = te[te["warmup"] == 0].reset_index(drop=True)
-    s = SatarkScorer(model).score_frame(te)
-    thr = {"red": float(np.quantile(s, 1 - 0.0003)), "amber": float(np.quantile(s, 1 - 0.001)),
-           "note": "Raw score cut-offs from test-world alert budgets (red 0.03%, amber 0.1%). "
-                   "Simulation only; not calibrated probabilities."}
-    Path(out).write_text(json.dumps(thr, indent=2))
-    y = te["is_scam"].to_numpy()
-    for k in ("red", "amber"):
-        a = s >= thr[k]
-        print(f"{k}: threshold {thr[k]:.4f} | alerts {a.sum()} | scams caught {(a & (y == 1)).sum()} of {y.sum()}")
-    print(f"Saved {out}")
-
-
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default="satark_model.joblib")
-    ap.add_argument("--data", default="data")
-    ap.add_argument("--out", default="thresholds.json")
-    a = ap.parse_args()
-    make_thresholds(a.model, a.data, a.out)

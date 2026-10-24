@@ -7,7 +7,6 @@ from model_service.satark_scorer import (
     INTENT_TEXT,
     REASON_MAP,
     LINK_COLS,
-    make_thresholds
 )
 
 __all__ = [
@@ -15,5 +14,4 @@ __all__ = [
     "INTENT_TEXT",
     "REASON_MAP",
     "LINK_COLS",
-    "make_thresholds"
 ]
