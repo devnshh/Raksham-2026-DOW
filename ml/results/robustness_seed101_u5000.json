@@ -27,9 +27,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9848484848484849,
-          "precision": 0.06226053639846743,
-          "alerts_per_1000": 4.8065745099619015,
-          "false_positive_rate": 0.004508684629253948
+          "precision": 0.05642361111111111,
+          "alerts_per_1000": 5.30380635582003,
+          "false_positive_rate": 0.005006067611847847
         },
         "red": {
           "recall": 0.6893939393939394,
@@ -59,9 +59,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9848484848484849,
-          "precision": 0.06114769520225776,
-          "alerts_per_1000": 4.89405048284435,
-          "false_positive_rate": 0.0045961871910065785
+          "precision": 0.05565068493150685,
+          "alerts_per_1000": 5.377470332984197,
+          "false_positive_rate": 0.0050797539796395355
         },
         "red": {
           "recall": 0.6893939393939394,
@@ -91,9 +91,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9848484848484849,
-          "precision": 0.06332196785192401,
-          "alerts_per_1000": 4.726004534938594,
-          "false_positive_rate": 0.004428090164481789
+          "precision": 0.05711775043936731,
+          "alerts_per_1000": 5.239350375801384,
+          "false_positive_rate": 0.00494159204003012
         },
         "red": {
           "recall": 0.6893939393939394,
@@ -123,9 +123,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9848484848484849,
-          "precision": 0.06226053639846743,
-          "alerts_per_1000": 4.8065745099619015,
-          "false_positive_rate": 0.004508684629253948
+          "precision": 0.05642361111111111,
+          "alerts_per_1000": 5.30380635582003,
+          "false_positive_rate": 0.005006067611847847
         },
         "red": {
           "recall": 0.6893939393939394,
@@ -155,9 +155,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9848484848484849,
-          "precision": 0.06226053639846743,
-          "alerts_per_1000": 4.8065745099619015,
-          "false_positive_rate": 0.004508684629253948
+          "precision": 0.05642361111111111,
+          "alerts_per_1000": 5.30380635582003,
+          "false_positive_rate": 0.005006067611847847
         },
         "red": {
           "recall": 0.6818181818181818,
@@ -187,9 +187,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9735099337748344,
-          "precision": 0.06780442804428044,
-          "alerts_per_1000": 4.907842134096373,
-          "false_positive_rate": 0.00457663312884547
+          "precision": 0.06197301854974705,
+          "alerts_per_1000": 5.369650157784408,
+          "false_positive_rate": 0.005038599065651248
         },
         "red": {
           "recall": 0.6490066225165563,
@@ -219,9 +219,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9622641509433962,
-          "precision": 0.06734154929577464,
-          "alerts_per_1000": 5.2060538707422985,
-          "false_positive_rate": 0.004857239785813834
+          "precision": 0.0619935170178282,
+          "alerts_per_1000": 5.655167672971827,
+          "false_positive_rate": 0.005306517274260985
         },
         "red": {
           "recall": 0.7044025157232704,
@@ -251,9 +251,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9925925925925926,
-          "precision": 0.0643302928468555,
-          "alerts_per_1000": 4.795031399053425,
-          "false_positive_rate": 0.004487960338312536
+          "precision": 0.058184976118106815,
+          "alerts_per_1000": 5.301467744608755,
+          "false_positive_rate": 0.004994554116880395
         },
         "red": {
           "recall": 0.762962962962963,
@@ -282,10 +282,10 @@
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.9185185185185185,
-          "precision": 0.05916030534351145,
-          "alerts_per_1000": 4.824957183108967,
-          "false_positive_rate": 0.004540922415162812
+          "recall": 0.9333333333333333,
+          "precision": 0.054498269896193774,
+          "alerts_per_1000": 5.322185595108746,
+          "false_positive_rate": 0.0050336999997697305
         },
         "red": {
           "recall": 0.6814814814814815,
@@ -315,9 +315,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9696969696969697,
-          "precision": 0.06092336982389338,
-          "alerts_per_1000": 4.836500500684845,
-          "false_positive_rate": 0.004543225114156303
+          "precision": 0.05536332179930796,
+          "alerts_per_1000": 5.322222350111072,
+          "false_positive_rate": 0.00502909460178275
         },
         "red": {
           "recall": 0.6742424242424242,
@@ -347,9 +347,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9787234042553191,
-          "precision": 0.06587112171837708,
-          "alerts_per_1000": 4.822588590607117,
-          "false_positive_rate": 0.004506381930260458
+          "precision": 0.05966277561608301,
+          "alerts_per_1000": 5.3244140382216045,
+          "false_positive_rate": 0.005008370310841337
         },
         "red": {
           "recall": 0.6808510638297872,
@@ -379,9 +379,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9848484848484849,
-          "precision": 0.06229036895064686,
-          "alerts_per_1000": 4.8042725106755215,
-          "false_positive_rate": 0.004506381930260458
+          "precision": 0.05644811115935736,
+          "alerts_per_1000": 5.301504356533649,
+          "false_positive_rate": 0.005003764912854356
         },
         "red": {
           "recall": 0.6439393939393939,
@@ -411,9 +411,9 @@
       "model_plus_policy": {
         "warning": {
           "recall": 0.9772727272727273,
-          "precision": 0.06151645207439199,
-          "alerts_per_1000": 4.827292503539323,
-          "false_positive_rate": 0.004531711619188851
+          "precision": 0.05581999134573778,
+          "alerts_per_1000": 5.319920350824691,
+          "false_positive_rate": 0.005024489203795769
         },
         "red": {
           "recall": 0.7045454545454546,

@@ -278,6 +278,7 @@ curl -X POST http://127.0.0.1:8000/v1/report \
     "notes": "Caller pretended to be Delhi Police cyber unit"
   }'
 ```
+Optional `case_id`: when it names an open case of the same reporter and payee (the app sends it from the red pause), that case is marked cancelled (`user_reported_scam` in its evidence) and an audit row with tier `user_reported_and_cancelled` is written. Any other `case_id` is ignored; the report is still filed.
 
 ---
 
@@ -346,7 +347,8 @@ The policy engine (`api/policy/engine.py`) is written in pure Python with zero f
            ▼
 5. Tier
    ├── RED:   score >= red threshold AND >= 2 independent families firing ──► RED (30-min hold)
-   ├── AMBER: score >= amber threshold, OR screen share / new remote app
+   ├── AMBER: score >= amber threshold, OR screen share / new remote app,
+   │          OR first payment >= stranger_amount_floor (25,000) to a non-contact, unverified payee
    │          (two families alone no longer warn: on validation that rule raised ~15,900 false alarms for 1 extra scam)
    └── GREEN: otherwise
    Family A counts a call at full weight only when the caller is not a contact saved 7+ days ago.

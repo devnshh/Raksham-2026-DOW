@@ -76,7 +76,8 @@ ANDROID_HOME=~/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexe
 - **Money tab:** transaction history. **You tab:** profile, bank accounts and, in debug builds, the **Simulation Lab**: the API address, a **custom scenario** form (any UPI ID, amount, entry channel, on a call, screen shared, new remote-access app, note) that opens the real payment screen so Pay shows the real amber, red or decline screen, and scripted scenarios scored against the API. The custom toggles apply to that one payment only.
 - Satark stays invisible on normal payments. It appears only as the amber warning, the red pause or the decline screen, in English and Hindi.
 - Those warning screens and the PIN pad are secure windows: screen sharing, casting, screen recording and screenshots show them black, so a scammer watching the screen cannot read the warning or see what is tapped. The user sees them normally. (On the emulator, `adb shell screencap` shows black while the warning is on the display.)
-- **Ask my trusted contact** (on the red pause) opens the phone's SMS app or WhatsApp with the question already written; the user picks the contact and the reply arrives there. The pause keeps counting down meanwhile.
+- **Ask my trusted contact** (on the red pause) opens the phone's SMS app or WhatsApp with a message listing every red flag (amount and payee, on a call and whether the caller is a saved contact, screen shared, remote-access app, payee reasons) and asking the contact to call back on the user's own number. The reply arrives there, not in the app; the pause keeps counting down meanwhile.
+- **Report a scam** (on the red pause) cancels the payment first, shows "Payment cancelled" for about 1.6 seconds, sends the report for that case (the case shows "Cancelled, reported as scam" in the console), then opens the 1930 dialer or cybercrime.gov.in.
 - **Appeals:** the amber warning offers "This was me, I know this payee": later ambers for that payee are not shown (never during a call or remote session, and not after the payee is reported again). The red pause and the decline screen offer only "Report a false alarm", which sends the case to the analyst console and changes nothing until an analyst clicks **Accept appeal**.
 
 ## Before every demo
@@ -97,7 +98,7 @@ Seeded journeys that work end to end (checked against a freshly reset database):
 | WhatsApp rebate QR | Scan any QR code → Electricity Rebate (or Upload from gallery) | Red pause |
 | Confirmed scam account | Bank transfer → `confirmed-scam-mule@ybl` → any amount | Blocked (decline) |
 
-A brand-new handle typed live gets a warning, not a red pause: red needs corroborating evidence about the payee.
+A brand-new handle typed live gets a warning, not a red pause: red needs corroborating evidence about the payee. A first payment of ₹25,000 or more to anyone who is not a saved contact or a verified merchant (Pay anyone → type `5656565656` → ₹50,000) is amber, even when the model scores it green.
 
 A live call is one input to the model, not a warning on its own. Paying a known person a large amount during a call (Home → Vikram → ₹25,000) is green at most hours, with or without a call; it turns amber around 21:00, when the demo user rarely pays. A call from a contact saved at least 7 days ago makes a warning less likely; an unknown caller does not. These journeys were checked at every hour of the day against a fresh demo database. Demo-data change for the retrained model (`ml/train.py`): the seeded `electricity-rebate@oksbi` payee has 3 prior reports instead of 1.
 
