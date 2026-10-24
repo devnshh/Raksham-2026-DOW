@@ -8,11 +8,12 @@
   "users_per_world": 5000,
   "train_rows": 439624,
   "train_scam_rows": 1773,
-  "train_data_sha256": "e3d67c42d1fae22880d050fb0695a9abd77615f488dd288d7f38f62c0387bbaa",
+  "train_data_sha256": "d401291102dafd5e0732f8087a3903d92fb4e594c8cea863a484e8719c292af9",
   "validation_rows": 436499,
   "validation_scam_rows": 144,
   "feature_columns": [
     "on_call",
+    "caller_in_contacts",
     "screen_shared",
     "remote_app_present",
     "remote_app_new",
@@ -50,8 +51,8 @@
     "entry_typed_vpa",
     "note_risk"
   ],
-  "model_sha256": "0502ccf9163052e9e25ff7469ba644f22b68d861a8ecee6e3c70371278e4d9cf",
-  "git_commit": "e16a1d7518225bce7be13db11203df755048fd87",
+  "model_sha256": "cfd7d027a7a9672dd10ab7b7257491bcbee6b14da846de0623a58d7d66c60c00",
+  "git_commit": "a51edfe72d8c342c2935c69d3872ff30ce00fd18",
   "scikit_learn": "1.8.0",
   "xgboost": "3.2.0",
   "note": "Rows after the 30-day warm-up. Features not measured at risk-check time (device_new, failed_auth, pin_time_z) are zero in training, as in production."

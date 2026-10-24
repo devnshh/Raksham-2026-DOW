@@ -35,6 +35,7 @@ def sample_features():
     """Canonical complete feature vector for scoring."""
     return {
         "on_call": False,
+        "caller_in_contacts": False,
         "screen_shared": False,
         "remote_app_present": False,
         "remote_app_new": False,

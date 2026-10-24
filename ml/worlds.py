@@ -21,7 +21,7 @@ from satark_sim import FEATURES, generate  # noqa: E402
 from api.policy.intent import resolve_note_intent  # noqa: E402
 
 TRAIN_SEEDS = (11,)
-VALIDATION_SEEDS = (33,)
+VALIDATION_SEEDS = (33, 44, 55)  # thresholds are set on 33; 44 and 55 confirm choices
 HOLDOUT_SEED = 22
 USERS = 5000
 

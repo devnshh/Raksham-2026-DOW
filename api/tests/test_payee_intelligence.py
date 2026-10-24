@@ -140,6 +140,7 @@ def test_c_scam_registry_write_path_elevates_fusion_score(demo_test_client):
     # Construct test features
     base_features = {
         "on_call": False,
+        "caller_in_contacts": False,
         "screen_shared": False,
         "remote_app_present": False,
         "remote_app_new": False,
