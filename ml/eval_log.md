@@ -9,6 +9,7 @@ Simulation results on an unseen synthetic world, not real-world accuracy. Warnin
 | Run | Date (UTC) | Commit | Model sha256 | Thresholds sha256 | Model only: warning P / R | Model + policy: warning P / R / per 1,000 | Model + policy: red P / R | Results |
 |---|---|---|---|---|---|---|---|---|
 | 1 | 2026-10-24 06:41 | 8ac337d136 | 0502ccf91630 | f5fa4fcb5910 | 29.4% / 95.1% | 0.7% / 90.2% / 42.14 | 95.3% / 71.3% | `ml/results/holdout_run1.json` |
+| 2 | 2026-10-24 16:03 | e5ff5d8154 | cfd7d027a7a9 | 8131fb36a3e7 | 29.9% / 96.5% | 6.2% / 95.8% / 4.92 | 96.3% / 72.0% | `ml/results/holdout_run2.json` |
 
 ## Run 1: named failure cases
 
@@ -42,3 +43,23 @@ Written before run 2. Every choice below was made from validation worlds (seeds 
 - **Model.** Retrained on seed 11 with the same hyperparameters; thresholds set on seed 33 at the same alert budgets (amber 0.856, red 0.996).
 - **Validation, model plus policy, warning level:** seed 33 recall 96.5%, 5.0 warnings per 1,000, precision 6.3% (was 88.2%, 41.3, 0.7%); seed 44 95.0%, 5.0, 6.1%; seed 55 93.5%, 5.1, 5.8%. These are optimistic: thresholds were set on seed 33.
 - **What run 2 can and cannot show.** The new signal's effect rests on the assumed rates above; the robustness run varies them. Run 2 is reported whatever it shows.
+
+## Run 2: named failure cases
+
+Written after run 2 from `ml/results/holdout_run2.json`. Nothing in the model, features or policy was changed in response.
+
+Holdout: 448,127 payments after warm-up, 143 scam payments in 60 journeys. Every journey got at least one warning. 6 scam payments got none (run 1: 14). Model plus policy: recall 95.8%, precision 6.2%, 4.9 warnings per 1,000 (run 1: 90.2%, 0.7%, 42.1).
+
+Missed scams:
+- **Calm, no-call scams to an unreported payee** (5 of 6 misses end in `green_below_threshold`): two investment payments, two calm-victim task scams and one KYC-link payment. No call, no reports, and for the task scams a normal amount; the model scores them below the amber cut-off. Fix: payee-side network signals (many first-time payers into a young individual account), which the simulator only approximates.
+- **A follow-up task-scam payment to a payee the user has paid before** (1, `eligibility_gate_silent_pass`): not a first-time payee and under twice the usual amount, so it was never scored. Fix: score repeat payments to a payee that has been reported since the last payment.
+
+False alarms (2,068 genuine payments warned, 0.46%):
+- **Screen sharing or a new remote-access app: 85% of false alarms** (family screen share 1,314, IT-help remote installs 442; every such payment is warned). This rule warns without the model. Fix to consider on validation: require the model's amber cut-off or another family alongside it, weighed against customer-care scams, where it is the main signal.
+- **Payments made on a call: 232 false alarms, 0.56% of on-call genuine payments** (run 1: 13,987, 34%). Rent to a new landlord during a call: 0 of 14 warned (run 1: 14 of 14).
+- **Emergency payments to a new person: 15% warned** (116); second-hand purchases 5%. Large first payments to young accounts score high even when legitimate.
+- **Screen-reader users: not worse.** False-alarm rate 0.47% against 0.46% overall.
+
+Fairness (warning false-alarm rate, model plus policy): every age band, language, phone tier and screen-reader group is between 0.44% and 0.49%.
+
+Unseen scam types (model only, retrained without that scenario, warning cut-off from the validation world): digital arrest 1.00, customer care 0.65, KYC link 0.71, task scam 0.65, investment 0.91, fake QR 0.60, OTP takeover 1.00.
