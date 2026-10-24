@@ -106,7 +106,8 @@ class MainActivity : ComponentActivity() {
                             onContactSelected = { contact ->
                                 activeContact = contact
                                 activeAmount = null
-                                activeEntryChannel = "phone_number"
+                                // A number typed by hand is an unknown payee; a pick from the list is a contact.
+                                activeEntryChannel = if (contact.id == "custom_phone") "typed_vpa" else "contact"
                                 navController.navigate("payment_amount")
                             }
                         )

@@ -47,6 +47,10 @@ def get_policy_engine() -> PolicyEngine:
     return _policy_engine
 
 
+# Entry channels the model was trained on (ml/train.py ENTRY).
+MODEL_ENTRY_CHANNELS = {"contact", "deep_link_sms", "deep_link_whatsapp", "merchant_collect", "qr_gallery", "qr_scan",
+                        "typed_vpa"}
+
 REQUIRED_NON_LINK_FEATURES = [
     "on_call", "caller_in_contacts", "screen_shared", "remote_app_present", "remote_app_new", "app_switches",
     "typing_z", "pause_z", "pin_time_z", "device_new", "failed_auth",
@@ -116,10 +120,14 @@ def assess_risk(
     note_intent = resolve_note_intent(req.context.note_intent, req.context.note_text)
 
     # 7. Resolve link intelligence: only when entry_channel is a link type
-    entry_channel = req.entry_channel or "typed_vpa"
-    is_link_entry = entry_channel.lower() in (
+    entry_channel = (req.entry_channel or "typed_vpa").lower()
+    is_link_entry = entry_channel in (
         "deep_link_sms", "deep_link_whatsapp", "qr from a link", "qr_from_link", "link"
     ) or bool(req.context.link_domain)
+    if entry_channel not in MODEL_ENTRY_CHANNELS:
+        # The model only knows these channels; an unknown one would zero every entry input. A payee
+        # entered some other way is treated as typed by hand.
+        entry_channel = "typed_vpa"
 
     if is_link_entry:
         intel = lookup_domain(req.context.link_domain)

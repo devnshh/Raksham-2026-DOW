@@ -25,6 +25,10 @@ eligibility_gate:
   bypass_on_family_a: true
   bypass_on_lookalike: 0.70
 
+# Large first payment to a stranger: amber when a first-time payee who is neither a saved contact nor a
+# verified merchant gets at least this much (INR). Chosen on validation worlds 33, 44, 55.
+stranger_amount_floor: 25000
+
 # Execution Safeguards
 timeout_ms: 300
 fail_open_on_error: true

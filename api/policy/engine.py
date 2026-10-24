@@ -197,6 +197,17 @@ class PolicyEngine:
             "D": round(fam_d, 3)
         }
 
+    def _large_first_payment_to_stranger(self, features: Dict[str, Any]) -> bool:
+        """A first payment of at least the configured amount to someone who is neither a saved contact
+        nor a verified merchant."""
+        floor = float(self.config.get("stranger_amount_floor", 25000))
+        try:
+            amount = float(features.get("amount") or 0)
+        except (TypeError, ValueError):
+            return False
+        return bool(features.get("payee_first_time")) and features.get("entry_channel") != "contact" \
+            and not features.get("payee_verified") and amount >= floor
+
     def _default_config(self) -> Dict[str, Any]:
         return {
             "version": "1.0.0",
@@ -219,6 +230,7 @@ class PolicyEngine:
                 "bypass_on_family_a": True,
                 "bypass_on_lookalike": 0.70
             },
+            "stranger_amount_floor": 25000,
             "timeout_ms": 300,
             "fail_open_on_error": True
         }
@@ -501,6 +513,16 @@ class PolicyEngine:
             tier = "amber"
             hold_minutes = 0
             applied_rules.append("amber_threshold_met")
+        elif self._large_first_payment_to_stranger(features):
+            # Safety net the model does not provide: it learned that big first payments to people are
+            # usually legitimate (emergencies, purchases), so ₹50,000 to an unknown number scored green.
+            # On the validation worlds this costs about 0.4 to 0.5 extra warnings per 1,000 payments.
+            tier = "amber"
+            hold_minutes = 0
+            applied_rules.append("large_first_payment_to_stranger")
+            for code in ("AMOUNT_UNUSUAL", "NEW_PAYEE"):
+                if code not in reasons:
+                    reasons.append(code)
         else:
             tier = "green"
             hold_minutes = 0
