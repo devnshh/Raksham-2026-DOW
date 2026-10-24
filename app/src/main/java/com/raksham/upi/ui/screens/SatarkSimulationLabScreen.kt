@@ -1,5 +1,6 @@
 package com.raksham.upi.ui.screens
 
+import com.raksham.upi.ui.formatAmount
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -179,6 +180,7 @@ fun SimulationLabScreen(
                     TextButton(
                         onClick = {
                             RiskGate.setBaseUrl(apiUrlText)
+                            RiskGate.warmUp()
                             showMessage("Saved API URL")
                         }
                     ) { Text("Save") }
@@ -234,7 +236,7 @@ fun SimulationLabScreen(
                         Column {
                             Text(sc.caption)
                             Text(
-                                "To: ${sc.payeeName} (${sc.payeeVpa}) · ₹${String.format("%,.0f", sc.amount)}",
+                                "To: ${sc.payeeName} (${sc.payeeVpa}) · ₹${formatAmount(sc.amount)}",
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )

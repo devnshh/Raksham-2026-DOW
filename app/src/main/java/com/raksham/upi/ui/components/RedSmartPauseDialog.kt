@@ -1,5 +1,6 @@
 package com.raksham.upi.ui.components
 
+import com.raksham.upi.ui.formatAmount
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -52,7 +53,11 @@ import com.raksham.upi.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Fade and rise 16dp into place; `index` staggers sections by 55 ms (whole entrance stays under 600 ms). */
+/**
+ * Rise 16dp into place; `index` staggers sections by 55 ms (whole entrance stays under 600 ms).
+ * Text starts mostly visible, never at zero: on a slow phone a stalled first frame must still show
+ * the warning, not a blank screen.
+ */
 @Composable
 private fun Modifier.riseIn(entered: Boolean, index: Int): Modifier {
     val progress by animateFloatAsState(
@@ -61,10 +66,7 @@ private fun Modifier.riseIn(entered: Boolean, index: Int): Modifier {
         label = "riseIn$index"
     )
     val risePx = with(LocalDensity.current) { 16.dp.toPx() }
-    return graphicsLayer {
-        alpha = progress
-        translationY = (1f - progress) * risePx
-    }
+    return graphicsLayer(alpha = 0.75f + 0.25f * progress, translationY = (1f - progress) * risePx)
 }
 
 @Composable
@@ -120,7 +122,7 @@ fun RedSmartPauseDialog(
     }
 
     val colors = MaterialTheme.colorScheme
-    val formattedAmount = String.format("%,.0f", amount)
+    val formattedAmount = formatAmount(amount)
 
     Dialog(
         onDismissRequest = { onHangUpAndCancel() },

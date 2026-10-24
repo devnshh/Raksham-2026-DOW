@@ -1,5 +1,6 @@
 package com.raksham.upi.ui.screens
 
+import com.raksham.upi.ui.formatAmount
 import android.content.Intent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
@@ -94,7 +95,7 @@ fun TransactionSuccessScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "₹${String.format("%.2f", amount)}",
+                    text = "₹${formatAmount(amount)}",
                     style = MaterialTheme.typography.displayMedium,
                     modifier = Modifier.fadeUp { amountIn.value }
                 )

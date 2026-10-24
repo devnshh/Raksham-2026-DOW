@@ -1,5 +1,7 @@
 package com.raksham.upi.ui.screens
 
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -59,6 +61,8 @@ fun PayUpiScreen(
                 .imePadding()
                 .verticalScroll(rememberScrollState())
         ) {
+            val inputFocus = remember { FocusRequester() }
+            LaunchedEffect(Unit) { inputFocus.requestFocus() }
             TextField(
                 value = upiInput,
                 onValueChange = { upiInput = it.lowercase().trim() },
@@ -76,6 +80,7 @@ fun PayUpiScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .focusRequester(inputFocus)
                     .heightIn(min = 56.dp)
             )
 

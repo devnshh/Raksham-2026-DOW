@@ -1,5 +1,6 @@
 package com.raksham.upi.ui.components
 
+import com.raksham.upi.ui.formatAmount
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -111,7 +112,7 @@ fun NpciPinBottomSheet(
                         )
                     }
                     Text(
-                        text = "₹${String.format("%,.0f", amount)}",
+                        text = "₹${formatAmount(amount)}",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )

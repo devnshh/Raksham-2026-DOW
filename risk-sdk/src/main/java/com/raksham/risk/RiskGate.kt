@@ -32,12 +32,12 @@ object RiskGate {
         val signals = SessionSignalSourceProvider.current.collectSignals()
         lastUserRef = payment.userRef
 
-        // 1500 ms client timeout - maps timeout or exception to CHECK_UNAVAILABLE amber. The first
+        // 2000 ms client timeout - maps timeout or exception to CHECK_UNAVAILABLE amber. The first
         // check after launch pays class loading and JSON setup; 600 ms missed it on slow phones.
         // Timed on the IO thread: on the caller's (main) thread a janky frame would count
         // against the budget and turn a fast answer into CHECK_UNAVAILABLE.
         val response = withContext(Dispatchers.IO) {
-            withTimeoutOrNull(1500L) {
+            withTimeoutOrNull(2000L) {
                 try {
                     apiClient.assessRisk(payment, signals)
                 } catch (e: Exception) {
@@ -108,6 +108,14 @@ object RiskGate {
 
     /** Not tied to any screen, so the call survives navigating to the success screen. */
     private val backgroundScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Call at app start and after changing the API address. Best effort, never blocks. */
+    fun warmUp() {
+        backgroundScope.launch {
+            runCatching { SessionSignalSourceProvider.current.collectSignals() }
+            runCatching { apiClient.warmUp() }
+        }
+    }
 
     /** Fire-and-forget version of [reportPaymentCompleted] for UI callbacks. */
     fun reportPaymentCompletedInBackground(caseId: String, payment: PaymentRequest, pinSecs: Double?) {

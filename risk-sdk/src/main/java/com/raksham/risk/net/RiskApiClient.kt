@@ -95,6 +95,23 @@ internal class RiskApiClient(
         }
     }
 
+    /**
+     * Loads the HTTP stack and JSON serializers once, off the payment path. Without it the first
+     * check after launch spends about a second on class loading and can miss the time budget.
+     */
+    fun warmUp() {
+        json.encodeToString(AssessmentNetworkRequest(payee_vpa = "", amount = 0.0, session = SessionSignals()))
+        json.decodeFromString<AssessmentNetworkResponse>("""{"tier":"green"}""")
+        val conn = URL(baseUrl.trimEnd('/') + "/health").openConnection() as HttpURLConnection
+        try {
+            conn.connectTimeout = 2000
+            conn.readTimeout = 2000
+            conn.inputStream.use { it.readBytes() }
+        } finally {
+            conn.disconnect()
+        }
+    }
+
     suspend fun assessRisk(
         payment: PaymentRequest,
         signals: SessionSignals
@@ -112,7 +129,7 @@ internal class RiskApiClient(
                 secs_link_to_pay = payment.secsLinkToPay
             )
         )
-        val (code, text) = post("/v1/risk/assess", json.encodeToString(payload), 1000, 1500)
+        val (code, text) = post("/v1/risk/assess", json.encodeToString(payload), 1000, 2000)
         if (code !in 200..299) throw RuntimeException("Risk API returned HTTP $code: $text")
         json.decodeFromString<AssessmentNetworkResponse>(text)
     }

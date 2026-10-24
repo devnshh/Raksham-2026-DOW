@@ -1,5 +1,6 @@
 package com.raksham.upi.ui.screens
 
+import com.raksham.upi.ui.formatAmount
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -77,8 +78,6 @@ import com.raksham.upi.ui.theme.RewardsGold
 import com.raksham.upi.ui.theme.UpiMarkGreen
 import com.raksham.upi.ui.theme.UpiMarkOrange
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
-import java.util.Locale
 
 // The host app copies a stock UPI app's home screen; the scam check only appears when it interrupts
 // a payment. Sizes below are measured from the reference screenshots (1 iOS pt mapped to 1 dp).
@@ -611,8 +610,6 @@ private val MobileRechargeIcon = strokeIcon(
     "M12.8 8.2l-2.6 4h3.6l-2.6 4"
 )
 
-private val Rupees: NumberFormat = NumberFormat.getNumberInstance(Locale("en", "IN"))
-
 @Composable
 private fun TransactionRow(txn: TransactionItem) {
     ListItem(
@@ -638,7 +635,7 @@ private fun TransactionRow(txn: TransactionItem) {
         supportingContent = { Text("${txn.subtitle} · ${txn.dateString}", maxLines = 1, overflow = TextOverflow.Ellipsis) },
         trailingContent = {
             Text(
-                (if (txn.isCredit) "+₹" else "₹") + Rupees.format(txn.amount),
+                (if (txn.isCredit) "+₹" else "₹") + formatAmount(txn.amount),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (txn.isCredit) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface
             )

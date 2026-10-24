@@ -1,5 +1,6 @@
 package com.raksham.upi.ui.components
 
+import com.raksham.upi.ui.formatAmount
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -47,7 +48,7 @@ fun TrustedContactSheet(
     onApproved: () -> Unit
 ) {
     var status by remember { mutableStateOf(TrustedContactStatus.IDLE) }
-    val formattedAmount = String.format("%,.0f", amount)
+    val formattedAmount = formatAmount(amount)
     val colors = MaterialTheme.colorScheme
 
     val messageEn = "$contactFirstName, I am about to send ₹$formattedAmount to $payeeName (new account). Is this safe?"
@@ -72,7 +73,7 @@ fun TrustedContactSheet(
         }
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.surface) {
+    InlineSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

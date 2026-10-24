@@ -13,5 +13,6 @@ class RakshamApp : Application() {
         RiskGate.setBaseUrl(BuildConfig.RISK_API_BASE_URL)
         SessionTracker.install(this)
         SessionSignalSourceProvider.setDefault(RealSignalSource(this))
+        RiskGate.warmUp()
     }
 }

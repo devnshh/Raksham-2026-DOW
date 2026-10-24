@@ -1,5 +1,13 @@
 package com.raksham.upi.ui.screens
 
+import com.raksham.upi.ui.groupIndian
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.AnnotatedString
+import com.raksham.upi.ui.formatAmount
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
@@ -31,6 +39,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.raksham.risk.RiskGate
@@ -74,6 +84,11 @@ fun PaymentAmountScreen(
     val focusManager = LocalFocusManager.current
 
     var amountText by remember { mutableStateOf(initialAmount?.let { String.format("%.0f", it) } ?: "") }
+    // The field keeps its own selection so a prefilled amount (from a QR) opens with the cursor after it.
+    var amountField by remember { mutableStateOf(TextFieldValue(amountText, TextRange(amountText.length))) }
+    LaunchedEffect(amountText) {
+        if (amountField.text != amountText) amountField = TextFieldValue(amountText, TextRange(amountText.length))
+    }
     var noteText by remember { mutableStateOf("") }
     var selectedBank by remember { mutableStateOf(MockData.linkedBankAccounts.first()) }
 
@@ -197,6 +212,11 @@ fun PaymentAmountScreen(
         textAlign = TextAlign.Center
     )
 
+    val amountMeasurer = rememberTextMeasurer()
+    val amountWidth = with(LocalDensity.current) {
+        amountMeasurer.measure(groupIndian(amountText).ifEmpty { "0" }, amountStyle).size.width.toDp() + 2.dp
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -275,19 +295,25 @@ fun PaymentAmountScreen(
                         Text(text = "₹", style = amountStyle)
                         Spacer(modifier = Modifier.width(4.dp))
                         BasicTextField(
-                            value = amountText,
+                            value = amountField,
                             onValueChange = {
-                                if (it.length <= 7 && it.all { c -> c.isDigit() }) {
-                                    amountText = it
-                                    SessionTracker.onKeystroke()
+                                if (it.text.length <= 7 && it.text.all { c -> c.isDigit() }) {
+                                    amountField = it
+                                    if (it.text != amountText) {
+                                        amountText = it.text
+                                        SessionTracker.onKeystroke()
+                                    }
                                 }
                             },
+                            visualTransformation = IndianGroupingTransformation,
                             textStyle = amountStyle,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            // Sized to the measured text: IntrinsicSize.Min does not follow a text field's content,
+                            // so a prefilled amount scrolled inside a box narrower than the digits.
                             modifier = Modifier
-                                .width(IntrinsicSize.Min)
+                                .width(amountWidth)
                                 .focusRequester(amountFocus),
                             decorationBox = { inner ->
                                 Box(contentAlignment = Alignment.Center) {
@@ -415,7 +441,7 @@ fun PaymentAmountScreen(
                                 }
                             } else {
                                 Text(
-                                    text = if (parsedAmount > 0) "Pay ₹${String.format("%,.0f", parsedAmount)}" else "Enter Amount",
+                                    text = if (parsedAmount > 0) "Pay ₹${formatAmount(parsedAmount)}" else "Enter Amount",
                                     style = MaterialTheme.typography.titleMedium
                                 )
                             }
@@ -498,5 +524,25 @@ fun PaymentAmountScreen(
                 )
             }
         }
+    }
+}
+
+/** Shows typed digits with Indian grouping (48,000) while the field itself holds digits only. */
+private object IndianGroupingTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val grouped = groupIndian(text.text)
+        return TransformedText(AnnotatedString(grouped), object : OffsetMapping {
+            override fun originalToTransformed(offset: Int): Int {
+                var digits = 0
+                var i = 0
+                while (i < grouped.length && digits < offset) {
+                    if (grouped[i] != ',') digits++
+                    i++
+                }
+                return i
+            }
+
+            override fun transformedToOriginal(offset: Int): Int = grouped.take(offset).count { it != ',' }
+        })
     }
 }

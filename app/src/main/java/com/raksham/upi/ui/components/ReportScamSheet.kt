@@ -1,5 +1,6 @@
 package com.raksham.upi.ui.components
 
+import com.raksham.upi.ui.formatAmount
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -51,7 +52,7 @@ fun ReportScamSheet(
         appendLine("--- SUSPECTED FRAUD INCIDENT REPORT ---")
         appendLine("Date/Time: $formattedTime")
         appendLine("Recipient UPI ID: $payeeVpa")
-        appendLine("Attempted Amount: ₹${String.format("%,.0f", amount)}")
+        appendLine("Attempted Amount: ₹${formatAmount(amount)}")
         if (caseId.isNotBlank()) {
             appendLine("Incident Ref ID: $caseId")
         }
@@ -62,7 +63,7 @@ fun ReportScamSheet(
         appendLine("---------------------------------------")
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = colors.surface) {
+    InlineSheet(onDismiss = onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
