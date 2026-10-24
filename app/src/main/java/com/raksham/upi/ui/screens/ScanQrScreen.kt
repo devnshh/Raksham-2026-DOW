@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import android.app.Activity
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.QrCode
@@ -21,7 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import com.raksham.upi.data.Contact
 import com.raksham.upi.ui.theme.DarkColors
 import com.raksham.upi.ui.theme.Motion
@@ -32,7 +35,17 @@ fun ScanQrScreen(
     onBackClick: () -> Unit,
     onQrResolved: (contact: Contact, defaultAmount: Double?, entryChannel: String) -> Unit
 ) {
-    // A camera screen is dark in both themes, like a stock scanner.
+    // A camera screen is dark, like a stock scanner, so the system bar icons turn light while it shows.
+    val view = LocalView.current
+    DisposableEffect(view) {
+        val controller = WindowCompat.getInsetsController((view.context as Activity).window, view)
+        controller.isAppearanceLightStatusBars = false
+        controller.isAppearanceLightNavigationBars = false
+        onDispose {
+            controller.isAppearanceLightStatusBars = true
+            controller.isAppearanceLightNavigationBars = true
+        }
+    }
     MaterialTheme(colorScheme = DarkColors, typography = MaterialTheme.typography, shapes = MaterialTheme.shapes) {
         ScanQrContent(onBackClick, onQrResolved)
     }
