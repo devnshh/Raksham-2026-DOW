@@ -76,6 +76,7 @@ fun PaymentAmountScreen(
     contact: Contact,
     initialAmount: Double?,
     entryChannel: String,
+    initialNote: String = "",
     onBackClick: () -> Unit,
     onPaymentSuccess: (amount: Double, contact: Contact, upiRefId: String) -> Unit
 ) {
@@ -89,7 +90,7 @@ fun PaymentAmountScreen(
     LaunchedEffect(amountText) {
         if (amountField.text != amountText) amountField = TextFieldValue(amountText, TextRange(amountText.length))
     }
-    var noteText by remember { mutableStateOf("") }
+    var noteText by remember { mutableStateOf(initialNote) }
     var selectedBank by remember { mutableStateOf(MockData.linkedBankAccounts.first()) }
 
     // Interception State

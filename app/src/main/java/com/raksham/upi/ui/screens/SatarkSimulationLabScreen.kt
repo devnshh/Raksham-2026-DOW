@@ -38,7 +38,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SimulationLabScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onOpenCustom: (contact: com.raksham.upi.data.Contact, amount: Double, entryChannel: String, note: String,
+                   signals: com.raksham.risk.session.SessionSignals) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -186,6 +188,9 @@ fun SimulationLabScreen(
                     ) { Text("Save") }
                 }
             }
+
+            item { LabSectionHeader("Custom scenario") }
+            item { CustomScenarioCard(onOpen = onOpenCustom) }
 
             item { LabSectionHeader("Progress") }
             item {

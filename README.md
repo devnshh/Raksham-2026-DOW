@@ -73,7 +73,7 @@ ANDROID_HOME=~/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexe
 - **Home:** "Pay anyone" and "More" open pay by phone number; "Bank transfer" and the search bar open pay by UPI ID; tapping a person opens the amount screen. UPI Lite, Rewards and Mobile recharge are placeholders ("Not available in this demo").
 - **Scan any QR code:** there is no camera in the demo. Tap a sample QR (Chai Point ₹45, CBI Cyber Cell Notice ₹48,000, Electricity Rebate ₹5,000 from WhatsApp) or "Upload from gallery" (the rebate QR).
 - **UPI PIN:** any 6 digits.
-- **Money tab:** transaction history. **You tab:** profile, bank accounts and, in debug builds, the **Simulation Lab** (scripted scenarios scored against the API, and the API address).
+- **Money tab:** transaction history. **You tab:** profile, bank accounts and, in debug builds, the **Simulation Lab**: the API address, a **custom scenario** form (any UPI ID, amount, entry channel, on a call, screen shared, new remote-access app, note) that opens the real payment screen so Pay shows the real amber, red or decline screen, and scripted scenarios scored against the API. The custom toggles apply to that one payment only.
 - Satark stays invisible on normal payments. It appears only as the amber warning, the red pause or the decline screen, in English and Hindi.
 - **Ask my trusted contact** (on the red pause) opens the phone's SMS app or WhatsApp with the question already written; the user picks the contact and the reply arrives there. The pause keeps counting down meanwhile.
 - **Appeals:** the amber warning offers "This was me, I know this payee": later ambers for that payee are not shown (never during a call or remote session, and not after the payee is reported again). The red pause and the decline screen offer only "Report a false alarm", which sends the case to the analyst console and changes nothing until an analyst clicks **Accept appeal**.
@@ -142,5 +142,5 @@ Android unit tests (with Gradle JDK 17):
 - The model and thresholds come from our own simulator, not real bank data. Numbers are simulation results, not real-world accuracy.
 - Screen sharing is detected only as an extra display (casting or mirroring); `device_new` and failed PIN attempts are not measured in this demo.
 - The amber warning needs a live call detected by the phone; on an emulator use a real device or the Simulation Lab.
-- QR scanning is simulated (sample codes, no camera). The Simulation Lab scores scenarios but does not open the warning screens.
+- QR scanning is simulated (sample codes, no camera). The Simulation Lab's scripted scenarios only report Pass or Fail; use the custom scenario form to see the warning screens.
 - One demo user (`raksham@oksbi`) is hard-coded in the app, and the app endpoints trust the `user_ref` they are sent: there is no user sign-in, so in this demo anyone who knows a case ID and user ID can appeal that case.

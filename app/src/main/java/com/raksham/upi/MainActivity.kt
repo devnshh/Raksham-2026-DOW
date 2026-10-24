@@ -19,6 +19,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.raksham.risk.session.ScriptedSignalSource
+import com.raksham.risk.session.SessionSignalSourceProvider
 import com.raksham.upi.data.Contact
 import com.raksham.upi.data.MockData
 import com.raksham.upi.ui.screens.*
@@ -43,6 +45,8 @@ class MainActivity : ComponentActivity() {
                 var activeContact by remember { mutableStateOf<Contact?>(null) }
                 var activeAmount by remember { mutableStateOf<Double?>(null) }
                 var activeEntryChannel by remember { mutableStateOf("typed_vpa") }
+                var activeNote by remember { mutableStateOf("") }
+                var customScenarioActive by remember { mutableStateOf(false) }
 
                 // Success receipt state
                 var successAmount by remember { mutableDoubleStateOf(0.0) }
@@ -137,9 +141,19 @@ class MainActivity : ComponentActivity() {
                     // Payment Amount & Satark Risk Interception Screen
                     composable("payment_amount") {
                         val contact = activeContact ?: MockData.contacts.first()
+                        DisposableEffect(Unit) {
+                            onDispose {
+                                if (customScenarioActive) {
+                                    SessionSignalSourceProvider.restoreRealSource()
+                                    customScenarioActive = false
+                                    activeNote = ""
+                                }
+                            }
+                        }
                         PaymentAmountScreen(
                             contact = contact,
                             initialAmount = activeAmount,
+                            initialNote = activeNote,
                             entryChannel = activeEntryChannel,
                             onBackClick = { navController.popBackStack() },
                             onPaymentSuccess = { amount, paidContact, refId ->
@@ -172,7 +186,17 @@ class MainActivity : ComponentActivity() {
                     composable("satark_lab") {
                         if (BuildConfig.DEBUG) {
                             SimulationLabScreen(
-                                onBackClick = { navController.popBackStack() }
+                                onBackClick = { navController.popBackStack() },
+                                onOpenCustom = { contact, amount, channel, note, signals ->
+                                    // Scripted signals for this one payment; restored when the payment screen closes.
+                                    SessionSignalSourceProvider.setScriptedSource(ScriptedSignalSource(signals))
+                                    customScenarioActive = true
+                                    activeContact = contact
+                                    activeAmount = amount
+                                    activeEntryChannel = channel
+                                    activeNote = note
+                                    navController.navigate("payment_amount")
+                                }
                             )
                         } else {
                             LaunchedEffect(Unit) {
