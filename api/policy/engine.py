@@ -520,15 +520,14 @@ class PolicyEngine:
             reasons = []
 
         # ---------------------------------------------------------------------
-        # Step 6b: Vouched-for payee. A user's "This was me" lowers only later ambers for this
-        # payee, and not while a call or remote-access app is active (a scammer on the line could
-        # have coached the tap). An analyst-accepted appeal also lowers red, but not while the
-        # screen is shared or a new remote-access app is present. A declined payee was already
-        # returned in step 1.
+        # Step 6b: Vouched-for payee (trust already dropped if the payee was reported since, or is
+        # over 90 days old). A user's "This was me" lowers only later ambers for this payee; an
+        # analyst-accepted appeal also lowers red. Neither applies while a call, screen share or
+        # remote-access app is active: a scammer could be steering this payment. A declined payee
+        # was already returned in step 1.
         # ---------------------------------------------------------------------
-        lowerable = (("amber", "red") if pair_trust == "analyst" and not has_strong_signal
-                     else ("amber",) if pair_trust == "user" and not has_family_a else ())
-        if tier in lowerable:
+        lowerable = ("amber", "red") if pair_trust == "analyst" else ("amber",) if pair_trust == "user" else ()
+        if tier in lowerable and not has_family_a:
             applied_rules.append(f"{pair_trust}_vouched_payee_green")
             tier, hold_minutes, reasons = "green", 0, []
 

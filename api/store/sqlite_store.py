@@ -538,28 +538,33 @@ class SQLiteFeatureStore(BaseFeatureStore):
 
             return len(confirmations_list), is_confirmed
 
-    def trust_pair(self, user_id: str, payee_vpa: str, source: str, case_id: str) -> None:
+    def trust_pair(self, user_id: str, payee_vpa: str, source: str, case_id: str, reports_at_trust: int) -> None:
         """Records that this user's payments to this payee were vouched for. An analyst's word
         replaces a user's; a user's never replaces an analyst's."""
         with get_db(self.db_path) as conn:
             conn.execute(
                 """
-                INSERT INTO trusted_pairs (user_id, payee_vpa, source, case_id, created_at)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(user_id, payee_vpa) DO UPDATE SET source = excluded.source,
-                    case_id = excluded.case_id, created_at = excluded.created_at
-                WHERE trusted_pairs.source != 'analyst';
+                INSERT INTO trusted_pairs (user_id, payee_vpa, source, case_id, reports_at_trust, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, payee_vpa) DO UPDATE SET source = excluded.source, case_id = excluded.case_id,
+                    reports_at_trust = excluded.reports_at_trust, created_at = excluded.created_at
+                WHERE trusted_pairs.source != 'analyst' OR excluded.source = 'analyst';
                 """,
-                (user_id.strip().lower(), payee_vpa.strip().lower(), source, case_id,
+                (user_id.strip().lower(), payee_vpa.strip().lower(), source, case_id, int(reports_at_trust),
                  datetime.now(timezone.utc).isoformat())
             )
 
-    def get_pair_trust(self, user_id: str, payee_vpa: str) -> Optional[str]:
-        """'analyst', 'user' or None."""
+    def get_pair_trust(self, user_id: str, payee_vpa: str, current_reports: int, max_age_days: int = 90) -> Optional[str]:
+        """'analyst', 'user' or None. Trust lapses with age, and as soon as the payee has been
+        reported more often than when the trust was given."""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
         with get_db(self.db_path) as conn:
             row = conn.execute(
-                "SELECT source FROM trusted_pairs WHERE user_id = ? AND payee_vpa = ?;",
-                (user_id.strip().lower(), payee_vpa.strip().lower())
+                """
+                SELECT source FROM trusted_pairs
+                WHERE user_id = ? AND payee_vpa = ? AND created_at >= ? AND reports_at_trust >= ?;
+                """,
+                (user_id.strip().lower(), payee_vpa.strip().lower(), cutoff, int(current_reports))
             ).fetchone()
         return row["source"] if row else None
 

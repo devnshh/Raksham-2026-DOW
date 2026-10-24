@@ -101,14 +101,16 @@ def accept_appeal(
     audit: AuditLogStore = Depends(get_audit_store)
 ) -> Dict[str, Any]:
     """An analyst accepts a user's false-alarm report: later red or amber checks for this user and
-    payee turn green. A declined payee stays declined until it is cleared for everyone."""
+    payee turn green (not during a call or remote session, and only until the payee is reported
+    again). A declined payee stays declined until it is cleared for everyone."""
     row = store.get_case(case_id)
     if not row:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
     evidence = json.loads(row["evidence_pack"] or "{}")
     if evidence.get("dispute") != "false_alarm_pending":
         raise HTTPException(status_code=409, detail="This case has no false-alarm report waiting for review")
-    store.trust_pair(row["user_id"], row["payee_vpa"], "analyst", case_id)
+    features = json.loads(row["feature_vector"] or "{}")
+    store.trust_pair(row["user_id"], row["payee_vpa"], "analyst", case_id, features.get("payee_reports_prior") or 0)
     store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
                                int(row["hold_minutes"]),
                                {"dispute": "false_alarm_accepted", "appeal_accepted_by": req.analyst_id})

@@ -225,7 +225,7 @@ def assess_risk(
             user_amber_count_7d=user_amber_count,
             trusted_payee_history=trusted_history,
             questionnaire_answers=req.questionnaire_answers,
-            pair_trust=store.get_pair_trust(user_id, payee_vpa)
+            pair_trust=store.get_pair_trust(user_id, payee_vpa, payee_profile["payee_reports_prior"])
         )
     except Exception as exc:
         # Safe fallback tier (amber, reason code CHECK_UNAVAILABLE), log to audit, never green
@@ -372,7 +372,13 @@ def appeal_case(
     row = _load_case_for_user(store, case_id, req.user_ref)
     if row["tier"] != "amber":
         raise HTTPException(status_code=409, detail="Only an amber warning can be marked 'This was me'")
-    store.trust_pair(row["user_id"], row["payee_vpa"], "user", case_id)
+    features = json.loads(row["feature_vector"] or "{}")
+    if "CHECK_UNAVAILABLE" in json.loads(row["reasons"] or "[]"):
+        raise HTTPException(status_code=409, detail="This check did not run, so there is nothing to vouch for")
+    if any(features.get(k) for k in ("on_call", "screen_shared", "remote_app_present", "remote_app_new")):
+        # A scammer on the line or controlling the screen could have coached this tap.
+        raise HTTPException(status_code=409, detail="Not available while a call or remote session was active")
+    store.trust_pair(row["user_id"], row["payee_vpa"], "user", case_id, features.get("payee_reports_prior") or 0)
     store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
                                int(row["hold_minutes"]), {"dispute": "this_was_me"})
     audit.append_log(case_id=case_id, user_id=row["user_id"], payee_vpa=row["payee_vpa"],
