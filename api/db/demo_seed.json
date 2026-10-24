@@ -1,0 +1,104 @@
+{
+  "user_ref": "raksham@oksbi",
+  "display_name": "Aayush Kumar",
+  "trusted_contact": {
+    "first_name": "Aarav",
+    "phone": "+91 98765 43210"
+  },
+  "friends": [
+    {
+      "name": "Rahul Sharma",
+      "vpa": "rahul.sharma@oksbi",
+      "phone": "+91 98200 11223",
+      "is_trusted": true,
+      "days_known": 120,
+      "typical_amount": 450.0
+    },
+    {
+      "name": "Priya Verma",
+      "vpa": "priya.verma@okaxis",
+      "phone": "+91 98300 22334",
+      "is_trusted": true,
+      "days_known": 110,
+      "typical_amount": 600.0
+    },
+    {
+      "name": "Amit Patel",
+      "vpa": "amit.patel@ibl",
+      "phone": "+91 98400 33445",
+      "is_trusted": true,
+      "days_known": 105,
+      "typical_amount": 500.0
+    },
+    {
+      "name": "Sneha Rao",
+      "vpa": "sneha.rao@paytm",
+      "phone": "+91 98500 44556",
+      "is_trusted": true,
+      "days_known": 115,
+      "typical_amount": 750.0
+    },
+    {
+      "name": "Vikram Singh",
+      "vpa": "vikram.singh@oksbi",
+      "phone": "+91 98600 55667",
+      "is_trusted": true,
+      "days_known": 100,
+      "typical_amount": 350.0
+    }
+  ],
+  "merchants": [
+    {
+      "name": "Chai Point",
+      "vpa": "chaipoint@icici",
+      "category": "merchant",
+      "typical_amount": 180.0
+    },
+    {
+      "name": "Swiggy",
+      "vpa": "swiggy@axisbank",
+      "category": "merchant",
+      "typical_amount": 320.0
+    },
+    {
+      "name": "Zomato",
+      "vpa": "zomato@hdfcbank",
+      "category": "merchant",
+      "typical_amount": 420.0
+    }
+  ],
+  "scam_mules": [
+    {
+      "name": "SBI Quick KYC Support Desk",
+      "vpa": "kyc-helpdesk-update@ybl",
+      "category": "mule",
+      "days_ago": 2.5,
+      "payers_count": 19,
+      "reports_count": 4
+    },
+    {
+      "name": "FastCash Payout Mule",
+      "vpa": "mule.fastcash@okaxis",
+      "category": "mule",
+      "days_ago": 2.0,
+      "payers_count": 18,
+      "reports_count": 3
+    },
+    {
+      "name": "VIP Task Payout Mule",
+      "vpa": "mule.taskpayout@paytm",
+      "category": "mule",
+      "days_ago": 3.0,
+      "payers_count": 10,
+      "reports_count": 1
+    },
+    {
+      "name": "Fresh Unreported Mule",
+      "vpa": "mule.unreported@ibl",
+      "category": "mule",
+      "days_ago": 4.0,
+      "payers_count": 8,
+      "reports_count": 0
+    }
+  ]
+}

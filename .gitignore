@@ -1,0 +1,17 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.idea/
+*.iml
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local runtime state (recreated and seeded on startup; reset with scripts/reset_demo_db.py)
+*.db
+*.db-wal
+*.db-shm
+.deps/
+.venv/
+venv/

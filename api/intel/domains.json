@@ -1,0 +1,38 @@
+{
+  "kyc-verification-desk.top": {
+    "bad": 1,
+    "age_days": 4,
+    "category": "phishing",
+    "threat_type": "credential_theft"
+  },
+  "sbi-refund-portal.xyz": {
+    "bad": 1,
+    "age_days": 7,
+    "category": "impersonation",
+    "threat_type": "bank_impersonation"
+  },
+  "cbi-cybercell-fund.online": {
+    "bad": 1,
+    "age_days": 12,
+    "category": "scam",
+    "threat_type": "extortion"
+  },
+  "hdfcbank.com": {
+    "bad": 0,
+    "age_days": 7300,
+    "category": "banking",
+    "threat_type": "legitimate"
+  },
+  "swiggy.com": {
+    "bad": 0,
+    "age_days": 3650,
+    "category": "food",
+    "threat_type": "legitimate"
+  },
+  "zomato.com": {
+    "bad": 0,
+    "age_days": 4000,
+    "category": "food",
+    "threat_type": "legitimate"
+  }
+}

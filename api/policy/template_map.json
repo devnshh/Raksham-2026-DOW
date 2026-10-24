@@ -1,0 +1,63 @@
+{
+  "reason_priority": [
+    "ANALYST_CONFIRMED_SCAM",
+    "ON_CALL",
+    "SCREEN_SHARED",
+    "REMOTE_APP_NEW",
+    "REMOTE_APP_ACTIVE",
+    "REMOTE_APP_PRESENT",
+    "LOOKALIKE_HANDLE",
+    "NEW_PAYEE_YOUNG_ACCOUNT",
+    "PAYEE_REPORTED",
+    "REPORTED_BY_OTHERS",
+    "FAN_IN_24H",
+    "MANY_NEW_PAYERS",
+    "BAD_LINK",
+    "MALICIOUS_LINK_ORIGIN",
+    "NOTE_INTENT_RISK",
+    "SUSPICIOUS_NOTE_TEXT",
+    "AMOUNT_UNUSUAL",
+    "AMOUNT_8X_USUAL",
+    "ESCALATING_PAYMENTS",
+    "REPEAT_PAYEE_24H",
+    "SESSION_PRESSURE",
+    "ABNORMAL_HESITATION",
+    "PIN_TIME_EXTENDED",
+    "NEW_PAYEE",
+    "PAYEE_FIRST_TIME",
+    "UNVERIFIED_PAYEE",
+    "NEW_DEVICE",
+    "FAILED_AUTH",
+    "UNUSUAL_HOUR",
+    "LINK_ENTRY",
+    "QR_ENTRY"
+  ],
+  "tier_templates": {
+    "decline": {
+      "default": "decline_known_mule_v1",
+      "ANALYST_CONFIRMED_SCAM": "decline_known_mule_v1"
+    },
+    "red": {
+      "default": "red_coached_intervention_v1",
+      "ON_CALL": "red_call_new_payee_v1",
+      "SCREEN_SHARED": "red_coached_intervention_v1",
+      "REMOTE_APP_NEW": "red_coached_intervention_v1",
+      "REMOTE_APP_ACTIVE": "red_coached_intervention_v1",
+      "REMOTE_APP_PRESENT": "red_coached_intervention_v1",
+      "LOOKALIKE_HANDLE": "red_coached_intervention_v1",
+      "NEW_PAYEE_YOUNG_ACCOUNT": "red_call_new_payee_v1",
+      "PAYEE_REPORTED": "red_coached_intervention_v1",
+      "FAN_IN_24H": "red_coached_intervention_v1",
+      "BAD_LINK": "red_coached_intervention_v1",
+      "NOTE_INTENT_RISK": "red_coached_intervention_v1",
+      "AMOUNT_UNUSUAL": "red_coached_intervention_v1"
+    },
+    "amber": {
+      "default": "amber_caution_v1"
+    },
+    "green": {
+      "default": "green_pass_v1",
+      "silent": "green_silent_pass"
+    }
+  }
+}

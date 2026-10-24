@@ -1,0 +1,156 @@
+package com.raksham.upi
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.*
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.raksham.upi.data.Contact
+import com.raksham.upi.data.MockData
+import com.raksham.upi.ui.screens.*
+import com.raksham.upi.ui.theme.RakshamTheme
+
+class MainActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+
+        setContent {
+            RakshamTheme {
+                val navController = rememberNavController()
+
+                // State to pass selected contact and amount to payment amount screen
+                var activeContact by remember { mutableStateOf<Contact?>(null) }
+                var activeAmount by remember { mutableStateOf<Double?>(null) }
+                var activeEntryChannel by remember { mutableStateOf("typed_vpa") }
+
+                // Success receipt state
+                var successAmount by remember { mutableDoubleStateOf(0.0) }
+                var successContact by remember { mutableStateOf<Contact?>(null) }
+                var successRefId by remember { mutableStateOf("") }
+
+                NavHost(
+                    navController = navController,
+                    startDestination = "home"
+                ) {
+                    // Google Pay Home Dashboard
+                    composable("home") {
+                        GPayHomeScreen(
+                            onPayPhoneClick = {
+                                navController.navigate("pay_phone")
+                            },
+                            onPayUpiClick = {
+                                navController.navigate("pay_upi")
+                            },
+                            onScanQrClick = {
+                                navController.navigate("scan_qr")
+                            },
+                            onSelectContact = { contact ->
+                                activeContact = contact
+                                activeAmount = null
+                                activeEntryChannel = "contact"
+                                navController.navigate("payment_amount")
+                            },
+                            onOpenLabClick = {
+                                navController.navigate("satark_lab")
+                            }
+                        )
+                    }
+
+                    // 1. Pay Phone Number Flow
+                    composable("pay_phone") {
+                        PayPhoneScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onContactSelected = { contact ->
+                                activeContact = contact
+                                activeAmount = null
+                                activeEntryChannel = "phone_number"
+                                navController.navigate("payment_amount")
+                            }
+                        )
+                    }
+
+                    // 2. Pay UPI ID / VPA Flow
+                    composable("pay_upi") {
+                        PayUpiScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onProceedToAmount = { contact ->
+                                activeContact = contact
+                                activeAmount = null
+                                activeEntryChannel = "typed_vpa"
+                                navController.navigate("payment_amount")
+                            }
+                        )
+                    }
+
+                    // 3. Scan QR Flow
+                    composable("scan_qr") {
+                        ScanQrScreen(
+                            onBackClick = { navController.popBackStack() },
+                            onQrResolved = { contact, defaultAmt, channel ->
+                                activeContact = contact
+                                activeAmount = defaultAmt
+                                activeEntryChannel = channel
+                                navController.navigate("payment_amount")
+                            }
+                        )
+                    }
+
+                    // Payment Amount & Satark Risk Interception Screen
+                    composable("payment_amount") {
+                        val contact = activeContact ?: MockData.contacts.first()
+                        PaymentAmountScreen(
+                            contact = contact,
+                            initialAmount = activeAmount,
+                            entryChannel = activeEntryChannel,
+                            onBackClick = { navController.popBackStack() },
+                            onPaymentSuccess = { amount, paidContact, refId ->
+                                successAmount = amount
+                                successContact = paidContact
+                                successRefId = refId
+                                navController.navigate("success") {
+                                    popUpTo("home")
+                                }
+                            }
+                        )
+                    }
+
+                    // Transaction Success & Digital Receipt Screen
+                    composable("success") {
+                        val contact = successContact ?: MockData.contacts.first()
+                        TransactionSuccessScreen(
+                            amount = successAmount,
+                            contact = contact,
+                            upiRefId = successRefId,
+                            onDoneClick = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    // Satark Simulation Lab Screen (Only reachable in DEBUG mode)
+                    composable("satark_lab") {
+                        if (BuildConfig.DEBUG) {
+                            SimulationLabScreen(
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        } else {
+                            LaunchedEffect(Unit) {
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

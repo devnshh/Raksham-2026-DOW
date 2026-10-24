@@ -1,0 +1,5 @@
+{
+  "red": 0.9933844208717346,
+  "amber": 0.6540762186050415,
+  "note": "Raw score cut-offs set on a separate validation world (simulator seed 33, realistic prevalence) at alert budgets red 0.03% / amber 0.1%. The test world (seed 22) was not used for tuning. Simulation only; not calibrated probabilities."
+}

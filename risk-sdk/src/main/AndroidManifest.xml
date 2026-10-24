@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Android 11+ package visibility: without these, getPackageInfo() always fails and
+         remote-access apps are never detected. Keep in sync with RealSignalSource.REMOTE_APPS.
+         Package names to verify on a real device before the demo. -->
+    <queries>
+        <package android:name="com.anydesk.anydeskandroid" />
+        <package android:name="com.teamviewer.quicksupport.market" />
+        <package android:name="com.teamviewer.host.market" />
+        <package android:name="com.carriez.flutter_hbb" />
+        <package android:name="com.rustdesk.rustdesk" />
+        <package android:name="com.sand.airdroid" />
+        <package android:name="com.sand.airdroidbiz" />
+    </queries>
+</manifest>
