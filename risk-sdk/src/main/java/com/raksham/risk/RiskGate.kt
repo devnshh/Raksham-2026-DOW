@@ -1,5 +1,6 @@
 package com.raksham.risk
 
+import android.util.Log
 import com.raksham.risk.model.PaymentRequest
 import com.raksham.risk.model.PlainReason
 import com.raksham.risk.model.RiskDecision
@@ -114,6 +115,7 @@ object RiskGate {
         backgroundScope.launch {
             runCatching { SessionSignalSourceProvider.current.collectSignals() }
             runCatching { apiClient.warmUp() }
+                .onFailure { Log.w("RiskGate", "Risk API not reachable at warm-up", it) }
         }
     }
 
