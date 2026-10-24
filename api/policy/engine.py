@@ -251,13 +251,14 @@ class PolicyEngine:
         simulate_failure: bool = False
     ) -> PolicyDecision:
         """
-        Executes the 7-step decision flow in strict order:
+        Executes the decision flow in strict order:
         1. Analyst-confirmed scam payee -> DECLINE
         2. Trusted payee rule -> GREEN silently unless Family A fires
         3. Eligibility gate -> score only first-time or unusual amount; else GREEN silently
         4. Scorer invocation (with fail-open on timeout >300ms or error)
-        5. Corroboration rule: RED needs >=2 families & score >= red_threshold
-        6. Per-user Amber cap: max 1 amber per 7 days unless RED
+        5. Tier: RED needs score >= red_threshold and >=2 families; AMBER needs score >= amber
+           threshold or screen sharing / a new remote-access app
+        6. Vouched-for payee can lower later warnings (never during a call or remote session)
         7. Red-tier questionnaire: can only raise risk, never lower RED tier
         """
         applied_rules: List[str] = []

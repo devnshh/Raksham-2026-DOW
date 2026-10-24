@@ -261,7 +261,6 @@ def test_red_always_intervenes(policy_engine: PolicyEngine):
     decision = policy_engine.evaluate(features)
     assert decision.tier == "red"
     assert decision.hold_minutes == 30
-    assert "amber_cap_downgraded_to_green" not in decision.applied_rules
 
 
 def test_questionnaire_cannot_lower_red_tier(policy_engine: PolicyEngine):

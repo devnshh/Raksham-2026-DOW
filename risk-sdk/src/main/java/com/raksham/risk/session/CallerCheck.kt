@@ -67,10 +67,13 @@ object CallerCheck {
     fun hasPermissions(context: Context) =
         PERMISSIONS.all { context.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED }
 
-    /** Answer for the call in progress, or null if this call was never checked. */
+    /** Answer for the phone call in progress, or null if this call was never checked. Only an answered
+     *  phone call counts: a number still ringing, or one ringing during an internet call, is not the
+     *  person the user is talking to. */
     fun currentCall(context: Context): Boolean? {
         val p = prefs(context)
         val at = p.getLong(KEY_AT, 0L)
+        if (!p.getBoolean(KEY_IN_CALL, false)) return null
         if (at == 0L || System.currentTimeMillis() - at > MAX_CALL_MS) return null
         return p.getBoolean(KEY_SAVED, false)
     }
