@@ -168,7 +168,7 @@ fun SimulationLabScreen(
     ) { padding ->
         LazyColumn(
             contentPadding = padding,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().imePadding()  // keep the form's fields above the keyboard
         ) {
             item { LabSectionHeader("Risk API") }
             item {
