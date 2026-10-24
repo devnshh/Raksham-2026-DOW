@@ -12,7 +12,7 @@ class HiddenSdkForbiddenStringsTest {
         "src/main/java/com/raksham/upi/ui/screens/PayUpiScreen.kt",
         "src/main/java/com/raksham/upi/ui/screens/ScanQrScreen.kt",
         "src/main/java/com/raksham/upi/ui/screens/TransactionSuccessScreen.kt",
-        "src/main/java/com/raksham/upi/ui/screens/GPayHomeScreen.kt",
+        "src/main/java/com/raksham/upi/ui/screens/HomeScreen.kt",
         "src/main/java/com/raksham/upi/ui/components/AmberWarningDialog.kt",
         "src/main/java/com/raksham/upi/ui/components/RedSmartPauseDialog.kt",
         "src/main/java/com/raksham/upi/ui/components/NpciPinKeypad.kt",

@@ -7,13 +7,13 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 // Material 3 colour roles for a blue-seeded scheme (Google Pay-like look, no Google branding).
-// Screens read colours from MaterialTheme.colorScheme or LocalSatarkColors, never raw hex.
+// Screens read colours from MaterialTheme.colorScheme or LocalCautionColors, never raw hex.
 
 internal val LightColors = lightColorScheme(
     primary = Color(0xFF0B57D0),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFD3E3FD),
-    onPrimaryContainer = Color(0xFF041E49),
+    onPrimaryContainer = Color(0xFF0842A0),
     secondary = Color(0xFF00639B),
     onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFC2E7FF),
@@ -30,7 +30,7 @@ internal val LightColors = lightColorScheme(
     onBackground = Color(0xFF1F1F1F),
     surface = Color(0xFFFFFFFF),
     onSurface = Color(0xFF1F1F1F),
-    surfaceVariant = Color(0xFFE1E3E1),
+    surfaceVariant = Color(0xFFE3E3E3),
     onSurfaceVariant = Color(0xFF444746),
     surfaceTint = Color(0xFF0B57D0),
     outline = Color(0xFF747775),
@@ -92,46 +92,33 @@ internal val DarkColors = darkColorScheme(
  * green (safe) uses the tertiary roles; amber (caution) lives here.
  */
 @Immutable
-data class SatarkColors(
+data class CautionColors(
     val caution: Color,
     val onCaution: Color,
     val cautionContainer: Color,
     val onCautionContainer: Color
 )
 
-internal val LightSatarkColors = SatarkColors(
+internal val LightCautionColors = CautionColors(
     caution = Color(0xFF8A5100),
     onCaution = Color(0xFFFFFFFF),
     cautionContainer = Color(0xFFFFDDB3),
     onCautionContainer = Color(0xFF2B1700)
 )
 
-internal val DarkSatarkColors = SatarkColors(
+internal val DarkCautionColors = CautionColors(
     caution = Color(0xFFFFB95C),
     onCaution = Color(0xFF482900),
     cautionContainer = Color(0xFF673D00),
     onCautionContainer = Color(0xFFFFDDB3)
 )
 
-val LocalSatarkColors = staticCompositionLocalOf { LightSatarkColors }
+// Fixed colours measured from the reference home screen that have no Material role.
+val HeaderBannerPink = Color(0xFFFDEFEF)
+val HeaderBannerBlob = Color(0xFFF9D9DE)
+val ProfileAvatarSlate = Color(0xFF465C64)
+val UpiMarkOrange = Color(0xFFF47A20)
+val UpiMarkGreen = Color(0xFF0E9348)
+val RewardsGold = Color(0xFFF9AB00)
 
-// Legacy constants: still used by screens that have not been moved to theme roles yet.
-// Delete once nothing references them.
-val GPayBlue = Color(0xFF0B57D0)
-val GPayBlueVariant = Color(0xFF1A73E8)
-val GPayBlueLight = Color(0xFFE8F0FE)
-val GPayGreen = Color(0xFF137333)
-val GPayGreenLight = Color(0xFFE6F4EA)
-val GPayRed = Color(0xFFD93025)
-val GPayRedLight = Color(0xFFFCE8E6)
-val GPayYellow = Color(0xFFF9AB00)
-val GPayYellowLight = Color(0xFFFEF7E0)
-val SurfaceBackground = Color(0xFFF8F9FA)
-val SurfaceCard = Color(0xFFFFFFFF)
-val TextPrimary = Color(0xFF1F1F1F)
-val TextSecondary = Color(0xFF444746)
-val TextMuted = Color(0xFF747775)
-val DividerColor = Color(0xFFE3E3E3)
-val AlertGreen = Color(0xFF1E8E3E)
-val AlertAmber = Color(0xFFE37400)
-val AlertRed = Color(0xFFD93025)
+val LocalCautionColors = staticCompositionLocalOf { LightCautionColors }

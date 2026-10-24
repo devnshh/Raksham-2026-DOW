@@ -1,27 +1,34 @@
 package com.raksham.upi.ui.screens
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -64,6 +71,7 @@ fun PaymentAmountScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
 
     var amountText by remember { mutableStateOf(initialAmount?.let { String.format("%.0f", it) } ?: "") }
     var noteText by remember { mutableStateOf("") }
@@ -104,6 +112,7 @@ fun PaymentAmountScreen(
     fun initiateRiskCheck() {
         if (parsedAmount <= 0.0 || isAssessingRisk) return
 
+        focusManager.clearFocus()
         isAssessingRisk = true
         showSubtleProgress = false
 
@@ -166,300 +175,253 @@ fun PaymentAmountScreen(
         }
     }
 
+    val amountFocus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { amountFocus.requestFocus() }
+
+    // The amount grows from the centre as digits are typed, then steps down so long values still fit.
+    val amountSize by animateFloatAsState(
+        targetValue = when (amountText.length) {
+            in 0..3 -> 56f
+            4 -> 52f
+            5 -> 46f
+            6 -> 40f
+            else -> 36f
+        },
+        animationSpec = tween(Motion.MEDIUM, easing = Motion.Emphasized),
+        label = "amount size"
+    )
+    val amountStyle = MaterialTheme.typography.displayLarge.copy(
+        fontSize = amountSize.sp,
+        lineHeight = (amountSize * 1.15f).sp,
+        color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Paying ${contact.name}", fontSize = 17.sp, fontWeight = FontWeight.SemiBold) },
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                }
             )
-        },
-        containerColor = SurfaceBackground
+        }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .consumeWindowInsets(padding)
+                    .imePadding()
             ) {
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Recipient Profile Card
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            modifier = Modifier.size(48.dp),
-                            shape = CircleShape,
-                            color = Color(contact.colorHex)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = contact.avatarInitials,
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = contact.name,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
-                                )
-                                if (contact.isVerified) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = "Verified Payee",
-                                        tint = GPayBlue,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
-                            Text(
-                                text = contact.upiId,
-                                fontSize = 13.sp,
-                                color = TextSecondary,
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Amount Entry Card
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Enter Amount",
-                            fontSize = 13.sp,
-                            color = TextSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Large Rupee Input
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "₹",
-                                fontSize = 38.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            OutlinedTextField(
-                                value = amountText,
-                                onValueChange = {
-                                    if (it.length <= 7 && it.all { c -> c.isDigit() }) {
-                                        amountText = it
-                                        SessionTracker.onKeystroke()
-                                    }
-                                },
-                                placeholder = { Text("0", fontSize = 36.sp, color = TextMuted) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                                textStyle = LocalTextStyle.current.copy(
-                                    fontSize = 38.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary,
-                                    textAlign = TextAlign.Start
-                                ),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent
-                                ),
-                                modifier = Modifier.width(IntrinsicSize.Min)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Quick preset chips (+₹100, +₹500, +₹2,000, +₹10,000)
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            listOf(100, 500, 2000, 10000).forEach { chipAmount ->
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = SurfaceBackground,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .clickable {
-                                            val current = amountText.toDoubleOrNull() ?: 0.0
-                                            amountText = String.format("%.0f", current + chipAmount)
-                                        }
-                                ) {
-                                    Text(
-                                        text = "+₹$chipAmount",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = TextSecondary,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier.padding(vertical = 8.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Payment Note Field
-                        OutlinedTextField(
-                            value = noteText,
-                            onValueChange = {
-                                noteText = it
-                                SessionTracker.onKeystroke()
-                            },
-                            placeholder = { Text("Add a note (e.g. dinner, rent)", color = TextMuted, fontSize = 13.sp) },
-                            leadingIcon = {
-                                Icon(Icons.Default.EditNote, contentDescription = null, tint = GPayBlue)
-                            },
-                            singleLine = true,
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Bank Account Selector Card
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White,
-                    tonalElevation = 1.dp,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            modifier = Modifier.size(36.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            color = GPayBlueLight
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.AccountBalance,
-                                    contentDescription = null,
-                                    tint = GPayBlue,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = selectedBank.bankName,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "${selectedBank.accountType} (${selectedBank.accountNumberMasked})",
-                                fontSize = 12.sp,
-                                color = TextMuted
-                            )
-                        }
-
-                        Text(
-                            text = "PRIMARY",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GPayBlue
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Subtle Progress Indicator (visible only after 300 ms)
-                if (showSubtleProgress) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        CircularProgressIndicator(
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(16.dp),
-                            color = GPayBlue
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Verifying payment details...",
-                            fontSize = 13.sp,
-                            color = TextSecondary
-                        )
-                    }
-                }
-
-                Button(
-                    onClick = { initiateRiskCheck() },
-                    enabled = isButtonEnabled,
-                    colors = ButtonDefaults.buttonColors(containerColor = GPayBlue),
-                    shape = RoundedCornerShape(14.dp),
+                Column(
                     modifier = Modifier
+                        .weight(1f)
                         .fillMaxWidth()
-                        .height(52.dp)
-                        .semantics { contentDescription = "Pay button" }
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Surface(
+                        modifier = Modifier.size(64.dp),
+                        shape = CircleShape,
+                        color = Color(contact.colorHex)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = contact.avatarInitials,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = contact.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        if (contact.isVerified) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Filled.Verified,
+                                contentDescription = "Verified Payee",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
                     Text(
-                        text = if (parsedAmount > 0) "Pay ₹${String.format("%,.0f", parsedAmount)}" else "Enter Amount",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        text = contact.upiId,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(text = "₹", style = amountStyle)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        BasicTextField(
+                            value = amountText,
+                            onValueChange = {
+                                if (it.length <= 7 && it.all { c -> c.isDigit() }) {
+                                    amountText = it
+                                    SessionTracker.onKeystroke()
+                                }
+                            },
+                            textStyle = amountStyle,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier
+                                .width(IntrinsicSize.Min)
+                                .focusRequester(amountFocus),
+                            decorationBox = { inner ->
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (amountText.isEmpty()) {
+                                        Text(
+                                            text = "0",
+                                            style = amountStyle,
+                                            color = MaterialTheme.colorScheme.outlineVariant
+                                        )
+                                    }
+                                    inner()
+                                }
+                            }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    TextField(
+                        value = noteText,
+                        onValueChange = {
+                            noteText = it
+                            SessionTracker.onKeystroke()
+                        },
+                        placeholder = {
+                            Text(
+                                text = "Add a note",
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        },
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+                        singleLine = true,
+                        shape = CircleShape,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .widthIn(min = 200.dp, max = 320.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp)) {
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 64.dp)
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                modifier = Modifier.size(40.dp),
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Filled.AccountBalance,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column {
+                                Text(
+                                    text = selectedBank.bankName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "${selectedBank.accountType} (${selectedBank.accountNumberMasked})",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Stays enabled while checking (initiateRiskCheck ignores re-entry) so the button keeps
+                    // its colour and shows progress inline instead of greying out.
+                    Button(
+                        onClick = { initiateRiskCheck() },
+                        enabled = parsedAmount > 0.0,
+                        shape = CircleShape,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .semantics { contentDescription = "Pay button" }
+                    ) {
+                        AnimatedContent(
+                            targetState = showSubtleProgress,
+                            transitionSpec = {
+                                fadeIn(tween(Motion.SHORT, delayMillis = 60, easing = Motion.EmphasizedDecelerate))
+                                    .togetherWith(fadeOut(tween(90)))
+                            },
+                            label = "pay button state"
+                        ) { checking ->
+                            if (checking) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CircularProgressIndicator(
+                                        strokeWidth = 2.dp,
+                                        color = LocalContentColor.current,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text("Checking...", style = MaterialTheme.typography.titleMedium)
+                                }
+                            } else {
+                                Text(
+                                    text = if (parsedAmount > 0) "Pay ₹${String.format("%,.0f", parsedAmount)}" else "Enter Amount",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             // RED Tier Pause Screen

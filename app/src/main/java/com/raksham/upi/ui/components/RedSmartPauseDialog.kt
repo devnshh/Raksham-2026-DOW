@@ -1,36 +1,49 @@
 package com.raksham.upi.ui.components
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.HourglassTop
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.raksham.risk.RiskGate
@@ -38,6 +51,21 @@ import com.raksham.risk.model.RiskDecision
 import com.raksham.upi.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+/** Fade and rise 16dp into place; `index` staggers sections by 55 ms (whole entrance stays under 600 ms). */
+@Composable
+private fun Modifier.riseIn(entered: Boolean, index: Int): Modifier {
+    val progress by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(Motion.MEDIUM, delayMillis = index * 55, easing = Motion.EmphasizedDecelerate),
+        label = "riseIn$index"
+    )
+    val risePx = with(LocalDensity.current) { 16.dp.toPx() }
+    return graphicsLayer {
+        alpha = progress
+        translationY = (1f - progress) * risePx
+    }
+}
 
 @Composable
 fun RedSmartPauseDialog(
@@ -77,10 +105,22 @@ fun RedSmartPauseDialog(
     val isHoldComplete = remainingSeconds <= 0
     val timeFormatted = HoldTimerManager.formatRemainingTime()
 
+    // Entrance: badge springs in, content rises in with a short stagger.
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val badgeScale by animateFloatAsState(
+        targetValue = if (entered) 1f else 0.5f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "badgeScale"
+    )
+
     // Unskippable by back button (back = Hang up and cancel)
     BackHandler {
         onHangUpAndCancel()
     }
+
+    val colors = MaterialTheme.colorScheme
+    val formattedAmount = String.format("%,.0f", amount)
 
     Dialog(
         onDismissRequest = { onHangUpAndCancel() },
@@ -90,279 +130,328 @@ fun RedSmartPauseDialog(
             usePlatformDefaultWidth = false
         )
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFFB3261E)) // Full-screen Red Tier Accent
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
                     .systemBarsPadding(),
-                color = Color.White
+                color = colors.surface
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Red Alert Icon
-                    Box(
+                    // Header: error-tinted area with badge, headline and the one-line fact
+                    Column(
                         modifier = Modifier
-                            .size(68.dp)
-                            .background(Color(0xFFFCE8E6), CircleShape),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .background(
+                                colors.errorContainer,
+                                MaterialTheme.shapes.extraLarge.copy(
+                                    topStart = ZeroCornerSize,
+                                    topEnd = ZeroCornerSize
+                                )
+                            )
+                            .padding(horizontal = 24.dp, vertical = 24.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = "Security Alert",
-                            tint = GPayRed,
-                            modifier = Modifier.size(40.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // 1. Headline
-                    Text(
-                        text = "Wait. This looks like a scam call.",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = GPayRed,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.semantics { heading() }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // 2. Fact-Based Body from reasons, amount, and payee
-                    val formattedAmount = String.format("%,.0f", amount)
-                    val factBodyEn = buildString {
-                        append("You are attempting to transfer ₹$formattedAmount to $payeeVpa. ")
-                        if (decision.reasons.isNotEmpty()) {
-                            append("Our safety systems detected: ")
-                            append(decision.reasons.joinToString(", ") { it.en })
-                            append(". ")
+                        Box(
+                            modifier = Modifier
+                                .graphicsLayer {
+                                    scaleX = badgeScale
+                                    scaleY = badgeScale
+                                }
+                                .size(72.dp)
+                                .background(colors.error, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = "Security Alert",
+                                tint = colors.onError,
+                                modifier = Modifier.size(40.dp)
+                            )
                         }
-                        append("Legitimate officials and banks will NEVER ask you to make urgent payments or move funds to a 'safe account'.")
-                    }
 
-                    Text(
-                        text = factBodyEn,
-                        fontSize = 16.sp,
-                        color = TextPrimary,
-                        lineHeight = 22.sp,
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // 3. Official Warning Box (English + Hindi)
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFFEF7E0),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Text(
-                                text = "पुलिस या बैंक कभी \"जाँच\" के लिए पैसे ट्रांसफर करने को नहीं कहते।",
-                                fontSize = 15.sp,
+                        Column(modifier = Modifier.riseIn(entered, 0)) {
+                            BilingualText(
+                                en = "Wait. This looks like a scam call.",
+                                hi = "रुकिए। यह धोखाधड़ी का फोन कॉल प्रतीत होता है।",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = colors.onErrorContainer,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF7A4B04)
+                                modifier = Modifier.semantics { heading() }
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Police and banks never ask you to move money \"for verification\".",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF7A4B04)
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            BilingualText(
+                                en = "You are sending ₹$formattedAmount to $payeeVpa.",
+                                hi = "आप $payeeVpa को ₹$formattedAmount भेज रहे हैं।",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = colors.onErrorContainer
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 4. Interactive Questionnaire: "Is someone on the phone telling you what to do?"
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = SurfaceBackground,
-                        modifier = Modifier.fillMaxWidth()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .padding(top = 24.dp, bottom = 24.dp)
                     ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Text(
-                                text = "Quick Check: Is someone on the phone telling you what to do?",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "क्या फोन पर कोई आपको निर्देश दे रहा है?",
-                                fontSize = 13.sp,
-                                color = TextMuted
+                        // Reasons from the decision, then the standing advice
+                        Column(modifier = Modifier.riseIn(entered, 1)) {
+                            val reasonsToShow = decision.reasons.take(3)
+                            if (reasonsToShow.isNotEmpty()) {
+                                ReasonList(reasons = reasonsToShow, iconTint = colors.error)
+                                Spacer(modifier = Modifier.height(20.dp))
+                            }
+
+                            Surface(
+                                shape = MaterialTheme.shapes.medium,
+                                color = colors.surfaceContainerHigh,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        tint = colors.onSurfaceVariant,
+                                        modifier = Modifier
+                                            .padding(top = 2.dp)
+                                            .size(24.dp)
+                                    )
+                                    BilingualText(
+                                        en = "Police and banks never ask you to move money \"for verification\".",
+                                        hi = "पुलिस या बैंक कभी \"जाँच\" के लिए पैसे ट्रांसफर करने को नहीं कहते।",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = colors.onSurface,
+                                        fontWeight = FontWeight.Medium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Check question: three large selectable answers
+                        Column(modifier = Modifier.riseIn(entered, 2)) {
+                            BilingualText(
+                                en = "Is someone on the phone telling you what to do?",
+                                hi = "क्या फोन पर कोई आपको निर्देश दे रहा है?",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = colors.onSurface,
+                                modifier = Modifier.semantics { heading() }
                             )
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
 
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .selectableGroup(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                listOf("Yes", "No", "Not sure").forEach { option ->
+                                listOf(
+                                    "Yes" to "हाँ",
+                                    "No" to "नहीं",
+                                    "Not sure" to "पक्का नहीं"
+                                ).forEach { (option, optionHi) ->
                                     val isSelected = selectedQuestionnaireAnswer == option
                                     Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = if (isSelected) GPayBlueLight else Color.White,
-                                        border = if (isSelected) ButtonDefaults.outlinedButtonBorder else null,
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .clickable {
-                                                selectedQuestionnaireAnswer = option
-                                                if (!questionnaireSubmitted) {
-                                                    questionnaireSubmitted = true
-                                                    coroutineScope.launch {
-                                                        val isGuiding = (option == "Yes")
-                                                        RiskGate.sendQuestionnaireAnswer(decision.caseId, isGuiding)
-                                                    }
-                                                }
-                                            }
+                                        shape = MaterialTheme.shapes.small,
+                                        color = if (isSelected) colors.primaryContainer else colors.surface,
+                                        contentColor = if (isSelected) colors.onPrimaryContainer else colors.onSurface,
+                                        border = BorderStroke(
+                                            width = if (isSelected) 2.dp else 1.dp,
+                                            color = if (isSelected) colors.primary else colors.outline
+                                        ),
+                                        modifier = Modifier.weight(1f)
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = option,
-                                                fontSize = 14.sp,
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(min = 56.dp)
+                                                .selectable(
+                                                    selected = isSelected,
+                                                    role = Role.RadioButton,
+                                                    onClick = {
+                                                        selectedQuestionnaireAnswer = option
+                                                        if (!questionnaireSubmitted) {
+                                                            questionnaireSubmitted = true
+                                                            coroutineScope.launch {
+                                                                val isGuiding = (option == "Yes")
+                                                                RiskGate.sendQuestionnaireAnswer(decision.caseId, isGuiding)
+                                                            }
+                                                        }
+                                                    }
+                                                )
+                                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            BilingualText(
+                                                en = option,
+                                                hi = optionHi,
+                                                style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                color = if (isSelected) GPayBlue else TextPrimary
+                                                textAlign = TextAlign.Center
                                             )
                                         }
                                     }
                                 }
                             }
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 5. Action 1: Hang up and cancel (Primary)
-                    Button(
-                        onClick = onHangUpAndCancel,
-                        colors = ButtonDefaults.buttonColors(containerColor = GPayRed),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                            .semantics { contentDescription = "Hang up call and cancel payment" }
-                    ) {
-                        Icon(Icons.Default.CallEnd, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Hang Up & Cancel Payment",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // 6. Action 2: Ask my trusted contact
-                    OutlinedButton(
-                        onClick = { showTrustedContactSheet = true },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .semantics { contentDescription = "Ask trusted contact for advice" }
-                    ) {
-                        Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Ask My Trusted Contact",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // 7. Action 3: Continue after hold (Disabled countdown surviving rotation)
-                    Button(
-                        onClick = {
-                            if (isHoldComplete) {
-                                showFinalReleaseWarning = true
+                            AnimatedVisibility(
+                                visible = selectedQuestionnaireAnswer == "Yes",
+                                enter = fadeIn(tween(Motion.MEDIUM)),
+                                exit = fadeOut(tween(Motion.SHORT))
+                            ) {
+                                BilingualText(
+                                    en = "Hang up now. A real bank or police officer will never tell you to pay.",
+                                    hi = "अभी फोन काट दें। असली बैंक या पुलिस अधिकारी कभी पैसे भेजने को नहीं कहते।",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = colors.onSurface,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier
+                                        .padding(top = 12.dp)
+                                        .semantics { liveRegion = LiveRegionMode.Polite }
+                                )
                             }
-                        },
-                        enabled = isHoldComplete,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isHoldComplete) GPayBlue else Color(0xFFE0E2EC),
-                            disabledContainerColor = Color(0xFFF1F3F9),
-                            disabledContentColor = TextMuted
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .semantics {
-                                liveRegion = LiveRegionMode.Polite
-                                contentDescription = if (isHoldComplete) {
-                                    "Continue after safety hold ended"
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Actions
+                        Column(modifier = Modifier.riseIn(entered, 3)) {
+                            // 1. Hang up and cancel (primary, safe)
+                            Button(
+                                onClick = onHangUpAndCancel,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colors.error,
+                                    contentColor = colors.onError
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 56.dp)
+                                    .semantics { contentDescription = "Hang up call and cancel payment" }
+                            ) {
+                                Icon(Icons.Default.CallEnd, contentDescription = null, modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                BilingualLabel(
+                                    en = "Hang Up & Cancel Payment",
+                                    hi = "फोन काटें और भुगतान रद्द करें"
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // 2. Ask my trusted contact
+                            OutlinedButton(
+                                onClick = { showTrustedContactSheet = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 56.dp)
+                                    .semantics { contentDescription = "Ask trusted contact for advice" }
+                            ) {
+                                Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                BilingualLabel(
+                                    en = "Ask My Trusted Contact",
+                                    hi = "अपने विश्वसनीय संपर्क से पूछें"
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // 3. Continue after hold: disabled with a calm live countdown
+                            OutlinedButton(
+                                onClick = {
+                                    if (isHoldComplete) {
+                                        showFinalReleaseWarning = true
+                                    }
+                                },
+                                enabled = isHoldComplete,
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    disabledContentColor = colors.onSurfaceVariant
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 56.dp)
+                                    .semantics {
+                                        liveRegion = LiveRegionMode.Polite
+                                        contentDescription = if (isHoldComplete) {
+                                            "Continue after safety hold ended"
+                                        } else {
+                                            "Continue disabled, safety hold active: $timeFormatted remaining"
+                                        }
+                                    }
+                            ) {
+                                Icon(
+                                    imageVector = if (isHoldComplete) Icons.Default.Lock else Icons.Default.HourglassTop,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                if (isHoldComplete) {
+                                    Text(
+                                        text = "Continue to PIN (Hold Ended)",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
                                 } else {
-                                    "Continue disabled, safety hold active: $timeFormatted remaining"
+                                    Text(
+                                        text = "Continue after ",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    AnimatedContent(
+                                        targetState = timeFormatted,
+                                        transitionSpec = {
+                                            (slideInVertically(tween(Motion.SHORT)) { it / 4 } + fadeIn(tween(Motion.SHORT))) togetherWith
+                                                (slideOutVertically(tween(Motion.SHORT)) { -it / 4 } + fadeOut(tween(Motion.SHORT)))
+                                        },
+                                        label = "holdCountdown"
+                                    ) { time ->
+                                        Text(
+                                            text = time,
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontFeatureSettings = "tnum"
+                                            )
+                                        )
+                                    }
                                 }
                             }
-                    ) {
-                        Icon(
-                            imageVector = if (isHoldComplete) Icons.Default.Lock else Icons.Default.HourglassTop,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isHoldComplete) {
-                                "Continue to PIN (Hold Ended)"
-                            } else {
-                                "Continue after $timeFormatted"
-                            },
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 4. Report a scam: opens the 1930 flow
+                        TextButton(
+                            onClick = { showReportSheet = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .riseIn(entered, 4)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Report a scam (Call 1930 / cybercrime.gov.in)",
+                                style = MaterialTheme.typography.titleSmall,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 8. "Report a scam" row -> opens 1930 flow
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { showReportSheet = true }
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Security,
-                            contentDescription = null,
-                            tint = TextSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Report a scam (Call 1930 / cybercrime.gov.in)",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TextSecondary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
 
@@ -394,39 +483,43 @@ fun RedSmartPauseDialog(
                 )
             }
 
-            // Release-after-hold: Final warning dialog before PIN screen
+            // Release-after-hold: final warning before the PIN screen. "Back to safety" is the filled choice.
             if (showFinalReleaseWarning) {
                 AlertDialog(
                     onDismissRequest = { showFinalReleaseWarning = false },
                     title = {
-                        Text(
-                            text = "Final Caution Notice",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = GPayRed
+                        BilingualText(
+                            en = "Final Caution Notice",
+                            hi = "अंतिम चेतावनी",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = colors.error
                         )
                     },
                     text = {
-                        Text(
-                            text = "The 30-minute safety pause has elapsed. If anyone is coaching you on the phone, hang up now. Once the PIN is entered, funds cannot be reversed.",
-                            fontSize = 15.sp,
-                            lineHeight = 21.sp
+                        BilingualText(
+                            en = "The 30-minute safety pause has elapsed. If anyone is coaching you on the phone, hang up now. Once the PIN is entered, funds cannot be reversed.",
+                            hi = "30 मिनट का सुरक्षा विराम पूरा हो गया। अगर फोन पर कोई आपको निर्देश दे रहा है, तो अभी फोन काट दें। PIN डालने के बाद पैसे वापस नहीं आ सकते।",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.verticalScroll(rememberScrollState())
                         )
                     },
                     confirmButton = {
                         Button(
+                            onClick = { showFinalReleaseWarning = false },
+                            modifier = Modifier.heightIn(min = 56.dp)
+                        ) {
+                            Text("Back to safety", style = MaterialTheme.typography.titleMedium)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
                             onClick = {
                                 showFinalReleaseWarning = false
                                 onProceedAfterHold()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = GPayRed)
+                            modifier = Modifier.heightIn(min = 48.dp)
                         ) {
-                            Text("I understand, enter PIN")
-                        }
-                    },
-                    dismissButton = {
-                        OutlinedButton(onClick = { showFinalReleaseWarning = false }) {
-                            Text("Back to safety")
+                            Text("I understand, enter PIN", style = MaterialTheme.typography.titleSmall)
                         }
                     }
                 )

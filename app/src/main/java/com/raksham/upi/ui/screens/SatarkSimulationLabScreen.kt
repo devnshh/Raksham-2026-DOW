@@ -1,40 +1,46 @@
 package com.raksham.upi.ui.screens
 
-import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.raksham.risk.RiskGate
 import com.raksham.upi.simulation.*
-import com.raksham.upi.ui.theme.*
+import com.raksham.upi.ui.theme.Motion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SimulationLabScreen(
     onBackClick: () -> Unit
 ) {
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
 
     var apiUrlText by remember { mutableStateOf(RiskGate.getBaseUrl()) }
     var selectedScenarioId by remember { mutableStateOf(ScenarioCatalog.scenarios.first().id) }
@@ -48,272 +54,50 @@ fun SimulationLabScreen(
     val selectedScenario = ScenarioCatalog.scenarios.firstOrNull { it.id == selectedScenarioId }
         ?: ScenarioCatalog.scenarios.first()
 
+    fun showMessage(text: String) {
+        coroutineScope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            snackbar.showSnackbar(text)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Simulation Lab",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = Color(0xFF2563EB)
-                        ) {
-                            Text(
-                                text = "AUTOMATED SUITE",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                },
+                title = { Text("Simulation Lab") },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0F172A))
+                }
             )
         },
-        containerColor = SurfaceBackground
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            // 1. Step Strip (Entering payee -> Checking -> Result)
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color(0xFF1E293B),
-                tonalElevation = 2.dp
-            ) {
+        snackbarHost = { SnackbarHost(snackbar) },
+        bottomBar = {
+            Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .navigationBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    StepItem(
-                        number = "1",
-                        label = "Entering Payee",
-                        isActive = currentStep == StepProgress.ENTERING_PAYEE,
-                        isDone = currentStep == StepProgress.CHECKING || currentStep == StepProgress.RESULT
-                    )
-                    Text("→", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
-                    StepItem(
-                        number = "2",
-                        label = "Checking",
-                        isActive = currentStep == StepProgress.CHECKING,
-                        isDone = currentStep == StepProgress.RESULT
-                    )
-                    Text("→", color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
-                    StepItem(
-                        number = "3",
-                        label = "Result",
-                        isActive = currentStep == StepProgress.RESULT,
-                        isDone = false
-                    )
-                }
-            }
-
-            // 2. Target Server Configuration Card
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                shape = RoundedCornerShape(14.dp),
-                color = Color.White,
-                tonalElevation = 1.dp
-            ) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "Backend API Endpoint (Port 8000)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextSecondary
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = apiUrlText,
-                            onValueChange = {
-                                apiUrlText = it
-                                RiskGate.setBaseUrl(it)
-                            },
-                            singleLine = true,
-                            textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Button(
-                            onClick = {
-                                RiskGate.setBaseUrl(apiUrlText)
-                                Toast.makeText(context, "Saved API URL", Toast.LENGTH_SHORT).show()
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = GPayBlue),
-                            modifier = Modifier.height(50.dp)
-                        ) {
-                            Text("Save", fontSize = 13.sp)
-                        }
-                    }
-                }
-            }
-
-            // Typing Animation Status (if active)
-            if (isRunning && currentTypingPreview.isNotBlank()) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = Color(0xFFF1F5F9),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "Typing preview: $currentTypingPreview",
-                        fontSize = 12.sp,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-            }
-
-            // 3. Scenario List
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(ScenarioCatalog.scenarios) { sc ->
-                    val isSelected = sc.id == selectedScenarioId
-                    val result = resultsMap[sc.id]
-
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = if (isSelected) Color(0xFFEFF6FF) else Color.White,
-                        border = if (isSelected) ButtonDefaults.outlinedButtonBorder else null,
-                        tonalElevation = 1.dp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .clickable {
-                                if (!isRunning) selectedScenarioId = sc.id
-                            }
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "${sc.titleEn} (${sc.titleHi})",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextPrimary
-                                    )
-                                    Text(
-                                        text = sc.caption,
-                                        fontSize = 12.sp,
-                                        color = TextSecondary,
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    )
-                                    Text(
-                                        text = "To: ${sc.payeeName} (${sc.payeeVpa}) • ₹${String.format("%,.0f", sc.amount)}",
-                                        fontSize = 12.sp,
-                                        color = TextMuted,
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    )
-                                }
-
-                                if (result != null) {
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = if (result.isPassed) Color(0xFFDCFCE7) else Color(0xFFFEE2E2),
-                                        modifier = Modifier.padding(start = 8.dp)
-                                    ) {
-                                        Text(
-                                            text = if (result.isPassed) "PASS" else "FAIL",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            color = if (result.isPassed) Color(0xFF15803D) else Color(0xFFB91C1C),
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                        )
-                                    }
-                                }
-                            }
-
-                            if (result != null) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        text = "Expected: ${sc.humanExpectedLabel}",
-                                        fontSize = 11.sp,
-                                        color = TextSecondary
-                                    )
-                                    Text(
-                                        text = "Actual: ${result.humanResultLabel}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (result.isPassed) Color(0xFF15803D) else Color(0xFFB91C1C)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 4. Lab Action Buttons (Run, Run All, Reset)
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                tonalElevation = 4.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Reset Button
                     OutlinedButton(
                         onClick = {
                             resultsMap = emptyMap()
                             currentStep = StepProgress.IDLE
                             currentTypingPreview = ""
-                            Toast.makeText(context, "State reset", Toast.LENGTH_SHORT).show()
+                            showMessage("State reset")
                         },
                         enabled = !isRunning,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp)
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp)
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Reset", fontSize = 13.sp)
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Reset")
                     }
 
-                    // Run Selected Scenario
                     Button(
                         onClick = {
                             isRunning = true
@@ -331,23 +115,19 @@ fun SimulationLabScreen(
                             }
                         },
                         enabled = !isRunning,
-                        colors = ButtonDefaults.buttonColors(containerColor = GPayBlue),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1.2f)
-                            .height(48.dp)
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp)
                     ) {
                         if (isRunning) {
-                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
+                            CircularProgressIndicator(color = LocalContentColor.current, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                         } else {
                             Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Run", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.width(6.dp))
+                            Text("Run")
                         }
                     }
 
-                    // Run All Scenarios
-                    Button(
+                    FilledTonalButton(
                         onClick = {
                             isRunning = true
                             coroutineScope.launch {
@@ -368,20 +148,140 @@ fun SimulationLabScreen(
                             }
                         },
                         enabled = !isRunning,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .weight(1.3f)
-                            .height(48.dp)
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp)
                     ) {
                         Icon(Icons.Default.FastForward, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Run All", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Run all", maxLines = 1)
                     }
                 }
             }
         }
+    ) { padding ->
+        LazyColumn(
+            contentPadding = padding,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item { LabSectionHeader("Risk API") }
+            item {
+                OutlinedTextField(
+                    value = apiUrlText,
+                    onValueChange = {
+                        apiUrlText = it
+                        RiskGate.setBaseUrl(it)
+                    },
+                    label = { Text("Backend API endpoint") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                )
+                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {
+                    TextButton(
+                        onClick = {
+                            RiskGate.setBaseUrl(apiUrlText)
+                            showMessage("Saved API URL")
+                        }
+                    ) { Text("Save") }
+                }
+            }
+
+            item { LabSectionHeader("Progress") }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StepItem("1", "Entering payee", currentStep == StepProgress.ENTERING_PAYEE, currentStep == StepProgress.CHECKING || currentStep == StepProgress.RESULT)
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
+                    StepItem("2", "Checking", currentStep == StepProgress.CHECKING, currentStep == StepProgress.RESULT)
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
+                    StepItem("3", "Result", currentStep == StepProgress.RESULT, false)
+                }
+                AnimatedVisibility(
+                    visible = isRunning && currentTypingPreview.isNotBlank(),
+                    enter = expandVertically(tween(Motion.MEDIUM, easing = Motion.EmphasizedDecelerate)) + fadeIn(tween(Motion.MEDIUM)),
+                    exit = shrinkVertically(tween(Motion.SHORT, easing = Motion.EmphasizedAccelerate)) + fadeOut(tween(Motion.SHORT))
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            "Typing preview: $currentTypingPreview",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+            }
+
+            item { LabSectionHeader("Scenarios") }
+            items(ScenarioCatalog.scenarios, key = { it.id }) { sc ->
+                val isSelected = sc.id == selectedScenarioId
+                val result = resultsMap[sc.id]
+                val rowColor by animateColorAsState(
+                    if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
+                    tween(Motion.SHORT),
+                    label = "scenario row"
+                )
+                ListItem(
+                    leadingContent = { RadioButton(selected = isSelected, onClick = null) },
+                    headlineContent = { Text("${sc.titleEn} (${sc.titleHi})") },
+                    supportingContent = {
+                        Column {
+                            Text(sc.caption)
+                            Text(
+                                "To: ${sc.payeeName} (${sc.payeeVpa}) · ₹${String.format("%,.0f", sc.amount)}",
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (result != null) {
+                                Text("Expected: ${sc.humanExpectedLabel}")
+                                Text(
+                                    "Actual: ${result.humanResultLabel}",
+                                    color = if (result.isPassed) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    },
+                    trailingContent = if (result != null) {
+                        {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (result.isPassed) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
+                            ) {
+                                Text(
+                                    if (result.isPassed) "Pass" else "Fail",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (result.isPassed) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+                    } else null,
+                    colors = ListItemDefaults.colors(containerColor = rowColor),
+                    modifier = Modifier
+                        .animateItemPlacement()
+                        .selectable(selected = isSelected, enabled = !isRunning, role = Role.RadioButton) {
+                            selectedScenarioId = sc.id
+                        }
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun LabSectionHeader(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp)
+    )
 }
 
 @Composable
@@ -391,28 +291,36 @@ private fun StepItem(
     isActive: Boolean,
     isDone: Boolean
 ) {
+    val circle by animateColorAsState(
+        when {
+            isDone -> MaterialTheme.colorScheme.tertiary
+            isActive -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.surfaceContainerHighest
+        },
+        tween(Motion.SHORT),
+        label = "step circle"
+    )
+    val onCircle = when {
+        isDone -> MaterialTheme.colorScheme.onTertiary
+        isActive -> MaterialTheme.colorScheme.onPrimary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
-            modifier = Modifier
-                .size(24.dp)
-                .background(
-                    color = if (isDone) Color(0xFF10B981) else if (isActive) Color(0xFF38BDF8) else Color(0xFF475569),
-                    shape = CircleShape
-                ),
+            modifier = Modifier.size(24.dp).background(circle, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             if (isDone) {
-                Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Icon(Icons.Default.Check, contentDescription = null, tint = onCircle, modifier = Modifier.size(14.dp))
             } else {
-                Text(text = number, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(number, style = MaterialTheme.typography.labelMedium, color = onCircle)
             }
         }
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isActive || isDone) FontWeight.Bold else FontWeight.Normal,
-            color = if (isActive || isDone) Color.White else Color(0xFF94A3B8)
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isActive || isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

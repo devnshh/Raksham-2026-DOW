@@ -1,7 +1,6 @@
 package com.raksham.upi.ui.theme
 
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -27,14 +26,12 @@ object Motion {
     const val LONG = 450
 }
 
+/** Light only: the app mirrors a stock UPI app's light theme whatever the system setting is. */
 @Composable
-fun RakshamTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
-) {
-    CompositionLocalProvider(LocalSatarkColors provides if (darkTheme) DarkSatarkColors else LightSatarkColors) {
+fun RakshamTheme(content: @Composable () -> Unit) {
+    CompositionLocalProvider(LocalCautionColors provides LightCautionColors) {
         MaterialTheme(
-            colorScheme = if (darkTheme) DarkColors else LightColors,
+            colorScheme = LightColors,
             typography = AppTypography,
             shapes = AppShapes,
             content = content

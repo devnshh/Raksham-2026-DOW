@@ -15,15 +15,15 @@ object TemplateRegistry {
             templateId = "amber_caution_v1",
             titleEn = "Caution: Verify before you pay",
             titleHi = "सावधानी: भुगतान करने से पहले पुष्टि करें",
-            bodyEn = "We noticed unusual details with this transaction. Please review the reasons below carefully before proceeding.",
-            bodyHi = "हमने इस लेनदेन में असामान्य विवरण देखा है। कृपया आगे बढ़ने से पहले नीचे दिए गए कारणों की ध्यानपूर्वक समीक्षा करें।"
+            bodyEn = "This payment looks unusual. Please check the reasons below before you pay.",
+            bodyHi = "यह भुगतान असामान्य लगता है। भुगतान करने से पहले कृपया नीचे दिए कारण देखें।"
         ),
         "amber_lookalike_v1" to LocalTemplate(
             templateId = "amber_lookalike_v1",
             titleEn = "Caution: Possible Lookalike Account",
             titleHi = "सावधानी: संदिग्ध प्रतिरूप खाता",
-            bodyEn = "This UPI address closely resembles a well-known organization or company. Verify that you are paying the official entity.",
-            bodyHi = "यह यूपीआई पता किसी प्रसिद्ध संस्था से काफी मिलता-जुलता है। पुष्टि करें कि आप सही प्राप्तकर्ता को भेज रहे हैं।"
+            bodyEn = "This UPI address looks very similar to a well-known company. Make sure you are paying the real one.",
+            bodyHi = "यह यूपीआई पता किसी जानी-मानी कंपनी से बहुत मिलता-जुलता है। पक्का करें कि आप असली प्राप्तकर्ता को भेज रहे हैं।"
         ),
         "amber_unusual_amount_v1" to LocalTemplate(
             templateId = "amber_unusual_amount_v1",

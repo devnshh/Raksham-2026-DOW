@@ -4,27 +4,33 @@ import android.content.Intent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathMeasure
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.raksham.upi.data.Contact
 import com.raksham.upi.ui.theme.*
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -36,16 +42,24 @@ fun TransactionSuccessScreen(
     onDoneClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val scaleAnim = remember { Animatable(0f) }
+
+    // One staggered sequence, about 1 s end to end. Delays live in the specs so the system
+    // animator scale stretches or skips them along with the motion.
+    val circle = remember { Animatable(0f) }
+    val check = remember { Animatable(0f) }
+    val amountIn = remember { Animatable(0f) }
+    val paidIn = remember { Animatable(0f) }
+    val cardIn = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        scaleAnim.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
+        val rise = { delay: Int -> tween<Float>(Motion.MEDIUM, delay, Motion.EmphasizedDecelerate) }
+        launch {
+            circle.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+        }
+        launch { check.animateTo(1f, tween(500, delayMillis = 120, easing = Motion.EmphasizedDecelerate)) }
+        launch { amountIn.animateTo(1f, rise(420)) }
+        launch { paidIn.animateTo(1f, rise(500)) }
+        launch { cardIn.animateTo(1f, rise(600)) }
     }
 
     val timestamp = remember {
@@ -55,111 +69,73 @@ fun TransactionSuccessScreen(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFF0F5132) // Google Pay Dark Emerald Green for Payment Confirmation
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 40.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Animated Bouncing Green Checkmark
-                Box(
-                    modifier = Modifier
-                        .size(88.dp)
-                        .scale(scaleAnim.value)
-                        .background(Color.White, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Success",
-                        tint = Color(0xFF0F5132),
-                        modifier = Modifier.size(54.dp)
-                    )
-                }
+                Spacer(modifier = Modifier.height(32.dp))
 
-                Spacer(modifier = Modifier.height(20.dp))
+                SuccessMark(circleScale = { circle.value }, checkProgress = { check.value })
+
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
                     text = "₹${String.format("%.2f", amount)}",
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    style = MaterialTheme.typography.displayMedium,
+                    modifier = Modifier.fadeUp { amountIn.value }
                 )
 
                 Text(
                     text = "Paid to ${contact.name}",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White.copy(alpha = 0.95f),
-                    modifier = Modifier.padding(top = 4.dp)
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .fadeUp { paidIn.value }
                 )
 
-                Text(
-                    text = contact.upiId,
-                    fontSize = 13.sp,
-                    color = Color.White.copy(alpha = 0.8f)
-                )
+                Spacer(modifier = Modifier.height(32.dp))
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Receipt Breakdown Card
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = Color.White,
-                    modifier = Modifier.fillMaxWidth()
+                    shape = MaterialTheme.shapes.extraLarge,
+                    color = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fadeUp { cardIn.value }
                 ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp)
-                    ) {
-                        ReceiptDetailRow("UPI Transaction ID", upiRefId)
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = DividerColor)
-                        ReceiptDetailRow("Debited From", "State Bank of India •••• 4291")
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = DividerColor)
-                        ReceiptDetailRow("Date & Time", timestamp)
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = DividerColor)
-
-                        // Bank Security Stamp
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.VerifiedUser,
-                                    contentDescription = null,
-                                    tint = GPayGreen,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Bank Payment Security",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
-                                )
-                            }
-                            Text(
-                                text = "VERIFIED",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = GPayGreen
-                            )
-                        }
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        ReceiptDetailRow("UPI transaction ID", upiRefId)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                        ReceiptDetailRow("To", "${contact.name}\n${contact.upiId}")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                        ReceiptDetailRow("From", "State Bank of India •••• 4291")
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                        ReceiptDetailRow("Date", timestamp)
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Bottom Action Buttons
-            Column(modifier = Modifier.fillMaxWidth()) {
-                OutlinedButton(
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .fadeUp { cardIn.value }) {
+                TextButton(
                     onClick = {
                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                             type = "text/plain"
@@ -170,31 +146,72 @@ fun TransactionSuccessScreen(
                         }
                         context.startActivity(Intent.createChooser(shareIntent, "Share Receipt"))
                     },
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onTertiaryContainer),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
                 ) {
-                    Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Share Receipt", fontSize = 14.sp)
+                    Text("Share receipt")
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Button(
                     onClick = onDoneClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .height(56.dp)
                 ) {
-                    Text("Done", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F5132))
+                    Text("Done", style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
+    }
+}
+
+private fun Modifier.fadeUp(progress: () -> Float) = graphicsLayer {
+    val p = progress()
+    alpha = p
+    translationY = (1f - p) * 24.dp.toPx()
+}
+
+/** Filled circle that springs in, with a check mark whose stroke is drawn progressively. */
+@Composable
+private fun SuccessMark(circleScale: () -> Float, checkProgress: () -> Float) {
+    val fill = MaterialTheme.colorScheme.tertiary
+    val stroke = MaterialTheme.colorScheme.onTertiary
+    Canvas(
+        modifier = Modifier
+            .size(112.dp)
+            .graphicsLayer {
+                val s = circleScale()
+                scaleX = s
+                scaleY = s
+            }
+            .semantics { contentDescription = "Success" }
+    ) {
+        drawCircle(fill)
+        val w = size.width
+        val h = size.height
+        val tick = Path().apply {
+            moveTo(w * 0.28f, h * 0.52f)
+            lineTo(w * 0.44f, h * 0.68f)
+            lineTo(w * 0.73f, h * 0.35f)
+        }
+        val measure = PathMeasure().apply { setPath(tick, false) }
+        val visible = Path()
+        measure.getSegment(0f, measure.length * checkProgress(), visible, true)
+        drawPath(
+            visible,
+            color = stroke,
+            style = Stroke(width = 7.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
     }
 }
 
@@ -203,10 +220,20 @@ private fun ReceiptDetailRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
-        Text(text = label, fontSize = 12.sp, color = TextMuted)
-        Text(text = value, fontSize = 12.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
-

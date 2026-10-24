@@ -2,9 +2,11 @@ package com.raksham.upi.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -12,17 +14,75 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import com.raksham.risk.model.PlainReason
 import com.raksham.risk.model.RiskDecision
 import com.raksham.upi.ui.templates.TemplateRegistry
 import com.raksham.upi.ui.theme.*
 
+/** English line with the Hindi line directly under it, same style so neither reads as secondary. */
+@Composable
+internal fun BilingualText(
+    en: String,
+    hi: String,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontWeight: FontWeight? = null,
+    textAlign: TextAlign? = null
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(text = en, style = style, color = color, fontWeight = fontWeight, textAlign = textAlign)
+        Text(text = hi, style = style, color = color, fontWeight = fontWeight, textAlign = textAlign)
+    }
+}
+
+/** Two-line button label (English, Hindi). Colour comes from the button's content colour. */
+@Composable
+internal fun BilingualLabel(en: String, hi: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = en, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text(text = hi, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+    }
+}
+
+/** Reasons from the decision: icon + English + Hindi, one row each. */
+@Composable
+internal fun ReasonList(
+    reasons: List<PlainReason>,
+    iconTint: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        reasons.forEach { reason ->
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .size(24.dp)
+                )
+                BilingualText(
+                    en = reason.en,
+                    hi = reason.hi,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AmberWarningDialog(
     decision: RiskDecision,
@@ -33,156 +93,82 @@ fun AmberWarningDialog(
 ) {
     val template = TemplateRegistry.resolve(decision.templateId)
     val reasonsToShow = decision.reasons.take(3)
+    val cautionColors = LocalCautionColors.current
 
-    Dialog(
+    // Swipe-down or tapping outside is the safe choice: it cancels the payment.
+    ModalBottomSheet(
         onDismissRequest = onCancel,
-        properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = false)
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
-        Surface(
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .padding(vertical = 16.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = Color.White,
-            tonalElevation = 6.dp
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(top = 8.dp, bottom = 24.dp)
         ) {
-            Column(
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(cautionColors.cautionContainer, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "Caution Notice",
+                    tint = cautionColors.onCautionContainer,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            BilingualText(
+                en = template.titleEn,
+                hi = template.titleHi,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.semantics { heading() }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            BilingualText(
+                en = template.bodyEn,
+                hi = template.bodyHi,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (reasonsToShow.isNotEmpty() && !decision.isCheckUnavailable) {
+                Spacer(modifier = Modifier.height(20.dp))
+                ReasonList(reasons = reasonsToShow, iconTint = cautionColors.caution)
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // Safe action first and filled; continuing is a quiet text button, single tap.
+            Button(
+                onClick = onCancel,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(22.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .heightIn(min = 56.dp)
+                    .semantics { contentDescription = "Cancel payment" }
             ) {
-                // Warning Icon Badge
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(GPayYellowLight, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = "Caution Notice",
-                        tint = AlertAmber,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                BilingualLabel(en = "Cancel Payment", hi = "भुगतान रद्द करें")
+            }
 
-                Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-                // Title (English)
-                Text(
-                    text = template.titleEn,
-                    fontSize = 19.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary,
-                    textAlign = TextAlign.Center
-                )
-
-                // Title (Hindi)
-                Text(
-                    text = template.titleHi,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextMuted,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Explanation Body (English + Hindi)
-                Text(
-                    text = template.bodyEn,
-                    fontSize = 16.sp,
-                    color = TextSecondary,
-                    lineHeight = 22.sp,
-                    textAlign = TextAlign.Center
-                )
-
-                Text(
-                    text = template.bodyHi,
-                    fontSize = 14.sp,
-                    color = TextMuted,
-                    lineHeight = 20.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Reason items (up to 3, one line each, with English and Hindi)
-                if (reasonsToShow.isNotEmpty() && !decision.isCheckUnavailable) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        reasonsToShow.forEach { r ->
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = SurfaceBackground,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                                    Text(
-                                        text = "• ${r.en}",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = TextPrimary
-                                    )
-                                    Text(
-                                        text = "  ${r.hi}",
-                                        fontSize = 12.sp,
-                                        color = TextMuted
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(20.dp))
-                } else {
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
-                // Actions: Cancel payment (Primary) and Continue anyway (Secondary)
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Primary: Cancel payment
-                    Button(
-                        onClick = onCancel,
-                        colors = ButtonDefaults.buttonColors(containerColor = GPayRed),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .semantics { contentDescription = "Cancel payment" }
-                    ) {
-                        Text(
-                            text = "Cancel Payment",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    // Secondary: Continue anyway (single tap, no extra confirmation)
-                    OutlinedButton(
-                        onClick = onContinue,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .semantics { contentDescription = "Continue anyway" }
-                    ) {
-                        Text(
-                            text = "Continue anyway",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary
-                        )
-                    }
-                }
+            TextButton(
+                onClick = onContinue,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .semantics { contentDescription = "Continue anyway" }
+            ) {
+                BilingualLabel(en = "Continue anyway", hi = "फिर भी जारी रखें")
             }
         }
     }

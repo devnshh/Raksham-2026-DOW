@@ -41,13 +41,13 @@ object MockData {
     )
 
     val contacts = listOf(
-        Contact("c1", "Rahul Sharma", "+91 98765 43210", "rahul.sharma@oksbi", "RS", 0xFF1A73E8),
-        Contact("c2", "Priya Verma", "+91 98111 22334", "priya.verma@okaxis", "PV", 0xFF0D652D),
-        Contact("c3", "Amit Patel", "+91 98222 55667", "amit.patel@ibl", "AP", 0xFFB06000),
-        Contact("c4", "Sneha Rao", "+91 98444 88990", "sneha.rao@paytm", "SR", 0xFF7627BB),
-        Contact("c5", "Vikram Singh", "+91 98777 11223", "vikram.singh@okhdfcbank", "VS", 0xFFD93025),
-        Contact("c6", "Anjali Mehta", "+91 98999 44332", "anjali.mehta@oksbi", "AM", 0xFF007B83),
-        Contact("c7", "Chai Point", "Merchant Counter", "chaipoint@icici", "CP", 0xFF137333, isVerified = true),
+        Contact("c1", "Rahul Sharma", "+91 98765 43210", "rahul.sharma@oksbi", "RS", 0xFFEF6C00),
+        Contact("c2", "Priya Verma", "+91 98111 22334", "priya.verma@okaxis", "PV", 0xFF512DA8),
+        Contact("c3", "Amit Patel", "+91 98222 55667", "amit.patel@ibl", "AP", 0xFF33691E),
+        Contact("c4", "Sneha Rao", "+91 98444 88990", "sneha.rao@paytm", "SR", 0xFF00897B),
+        Contact("c5", "Vikram Singh", "+91 98777 11223", "vikram.singh@okhdfcbank", "VS", 0xFF1565C0),
+        Contact("c6", "Anjali Mehta", "+91 98999 44332", "anjali.mehta@oksbi", "AM", 0xFFC2185B),
+        Contact("c7", "Chai Point", "Merchant Counter", "chaipoint@icici", "CP", 0xFF5D4037, isVerified = true),
         Contact("c8", "Zomato", "Online Orders", "zomato@hdfcbank", "ZO", 0xFFD93025, isVerified = true)
     )
 
