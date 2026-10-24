@@ -15,3 +15,6 @@ __pycache__/
 .deps/
 .venv/
 venv/
+
+# Simulator worlds regenerate from their seeds
+sim/data/*.parquet
