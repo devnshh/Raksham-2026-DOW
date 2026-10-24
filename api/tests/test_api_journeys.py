@@ -162,7 +162,7 @@ def test_user_scam_reporting(client: TestClient):
     """User reports scam payee via POST /v1/report."""
     payee = "reported-fraudster@ybl"
     rep_payload = {
-        "reporter_id": "victim@oksbi",
+        "reporter_id": "raksham@oksbi",  # an established account: brand-new ones add no weight (plan 4.3)
         "payee_vpa": payee,
         "reason": "Digital arrest scam call",
         "notes": "Claimed to be CBI officer"

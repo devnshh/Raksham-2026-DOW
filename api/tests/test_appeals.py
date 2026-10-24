@@ -36,7 +36,7 @@ def test_trust_lapses_when_the_payee_is_reported_again(client: TestClient):
     user, vpa = "appeal-reported@ybl", "kirana-store@paytm"
     first = _assess(client, user, vpa, 3000)
     client.post(f"/v1/risk/{first['case_id']}/appeal", json={"user_ref": user})
-    client.post("/v1/report", json={"reporter_id": "victim-1@ybl", "payee_vpa": vpa, "reason": "scam"})
+    client.post("/v1/report", json={"reporter_id": "default_user", "payee_vpa": vpa, "reason": "scam"})
     later = _assess(client, user, vpa, 3000)
     assert "user_vouched_payee_green" not in _rules(client, later["case_id"])
 

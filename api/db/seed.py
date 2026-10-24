@@ -112,7 +112,9 @@ def seed_data(db_path: str = DB_PATH) -> None:
         # ---------------------------------------------------------------------
         test_users = ["raksham@oksbi", "default_user", "u-hash-9f2c"]
         for u in test_users:
-            cursor.execute("INSERT OR IGNORE INTO users (user_id, created_at) VALUES (?, ?);", (u, now_iso))
+            # Accounts opened about 13 months ago, so their scam reports carry full weight.
+            cursor.execute("INSERT OR IGNORE INTO users (user_id, created_at) VALUES (?, ?);",
+                           (u, (now_dt - timedelta(days=400)).isoformat()))
 
         # 12 regular payments over past 30 days (typical UPI pattern)
         regular_payments = [

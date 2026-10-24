@@ -130,7 +130,9 @@ def seed_demo_data(db_path: str = DB_PATH) -> None:
         # ---------------------------------------------------------------------
         demo_users = ["raksham@oksbi", "default_user", "demo_user"]
         for u in demo_users:
-            cursor.execute("INSERT OR REPLACE INTO users (user_id, created_at) VALUES (?, ?);", (u, now_iso))
+            # Accounts opened about 13 months ago, so their scam reports carry full weight.
+            cursor.execute("INSERT OR REPLACE INTO users (user_id, created_at) VALUES (?, ?);",
+                           (u, (now_dt - timedelta(days=400)).isoformat()))
 
             # Clean old baseline txns & sessions for idempotency
             cursor.execute("DELETE FROM transactions WHERE user_id = ?;", (u,))

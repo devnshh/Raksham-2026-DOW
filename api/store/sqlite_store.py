@@ -19,6 +19,12 @@ from api.config import DB_PATH
 UNKNOWN_AGE_CATEGORIES = {"unknown", "reported", "flagged"}
 # Neutral value fed to the model when age is unknown (typical established individual account).
 NEUTRAL_UNKNOWN_AGE_DAYS = 365.0
+# Reporter trust: full weight at 30 days and 5 completed payments; newer accounts together add at most this.
+NEW_REPORTERS_CAP = 0.5
+
+
+def reporter_weight(age_days: float, payments: int) -> float:
+    return min(1.0, max(0.0, age_days) / 30.0) * min(1.0, payments / 5.0)
 
 
 def _median(data: List[float]) -> float:
@@ -295,13 +301,35 @@ class SQLiteFeatureStore(BaseFeatureStore):
 
     @staticmethod
     def _report_total(cursor, clean_vpa: str) -> int:
-        """Analyst/registry report count plus distinct in-app reporters (one per reporter)."""
+        """
+        Analyst/registry report count plus in-app reports weighted by each reporter's history.
+        A reporter counts fully once their account is 30 days old and has 5 completed payments,
+        and proportionally before that; unknown accounts count as brand new (weight 0). All
+        not-yet-established reporters together add at most half a report, so a crowd of fresh
+        accounts can never flag a payee on its own. Each reporter counts once per payee.
+        """
         cursor.execute("SELECT report_count FROM scam_registry WHERE vpa = ?;", (clean_vpa,))
         reg = cursor.fetchone()
         registry_count = int(reg["report_count"]) if reg and reg["report_count"] is not None else 0
-        cursor.execute("SELECT COUNT(DISTINCT reporter_id) AS cnt FROM reports WHERE payee_vpa = ?;", (clean_vpa,))
-        users = cursor.fetchone()
-        return registry_count + (int(users["cnt"]) if users and users["cnt"] is not None else 0)
+        cursor.execute(
+            """
+            SELECT r.reporter_id,
+                   COALESCE(julianday('now') - julianday(MIN(u.created_at)), 0) AS age_days,
+                   (SELECT COUNT(*) FROM transactions t WHERE t.user_id = r.reporter_id) AS payments
+            FROM (SELECT DISTINCT reporter_id FROM reports WHERE payee_vpa = ?) r
+            LEFT JOIN users u ON u.user_id = r.reporter_id
+            GROUP BY r.reporter_id;
+            """,
+            (clean_vpa,)
+        )
+        established, newcomers = 0.0, 0.0
+        for row in cursor.fetchall():
+            w = reporter_weight(row["age_days"], row["payments"])
+            if w >= 1.0:
+                established += 1.0
+            else:
+                newcomers += w
+        return registry_count + int(established + min(NEW_REPORTERS_CAP, newcomers))
 
     def get_trusted_payee_history(self, user_id: str, payee_vpa: str) -> Tuple[int, int]:
         clean_user = user_id.strip().lower()
