@@ -4,7 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -13,6 +21,7 @@ import androidx.navigation.navArgument
 import com.raksham.upi.data.Contact
 import com.raksham.upi.data.MockData
 import com.raksham.upi.ui.screens.*
+import com.raksham.upi.ui.theme.Motion
 import com.raksham.upi.ui.theme.RakshamTheme
 
 class MainActivity : ComponentActivity() {
@@ -35,13 +44,31 @@ class MainActivity : ComponentActivity() {
                 var successContact by remember { mutableStateOf<Contact?>(null) }
                 var successRefId by remember { mutableStateOf("") }
 
+                // Shared-axis X: the new screen slides in a short distance and fades up; Back reverses it.
                 NavHost(
                     navController = navController,
-                    startDestination = "home"
+                    startDestination = "home",
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surface),
+                    enterTransition = {
+                        slideInHorizontally(tween(Motion.LONG, easing = Motion.Emphasized)) { it / 8 } +
+                            fadeIn(tween(Motion.MEDIUM, delayMillis = 60, easing = Motion.EmphasizedDecelerate))
+                    },
+                    exitTransition = {
+                        slideOutHorizontally(tween(Motion.LONG, easing = Motion.Emphasized)) { -it / 8 } +
+                            fadeOut(tween(Motion.SHORT, easing = Motion.EmphasizedAccelerate))
+                    },
+                    popEnterTransition = {
+                        slideInHorizontally(tween(Motion.LONG, easing = Motion.Emphasized)) { -it / 8 } +
+                            fadeIn(tween(Motion.MEDIUM, delayMillis = 60, easing = Motion.EmphasizedDecelerate))
+                    },
+                    popExitTransition = {
+                        slideOutHorizontally(tween(Motion.LONG, easing = Motion.Emphasized)) { it / 8 } +
+                            fadeOut(tween(Motion.SHORT, easing = Motion.EmphasizedAccelerate))
+                    }
                 ) {
-                    // Google Pay Home Dashboard
+                    // Home: payments, history and profile tabs
                     composable("home") {
-                        GPayHomeScreen(
+                        HomeScreen(
                             onPayPhoneClick = {
                                 navController.navigate("pay_phone")
                             },
