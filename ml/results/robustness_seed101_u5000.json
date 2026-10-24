@@ -1,0 +1,299 @@
+{
+  "seed": 101,
+  "users": 5000,
+  "thresholds": {
+    "amber": 0.8585662245750427,
+    "red": 0.9973271489143372
+  },
+  "note": "Same seed for every variant, one rate changed at a time; deployed model and thresholds, not re-tuned. Changing a rate also shifts the simulator's later random draws, so part of each difference is chance. Simulation results, not real-world accuracy.",
+  "runs": {
+    "baseline": {
+      "payments": 434405,
+      "scam_payments": 132,
+      "model_only": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.29213483146067415,
+          "alerts_per_1000": 1.0243896824391983,
+          "false_positive_rate": 0.000725350182949435
+        },
+        "red": {
+          "recall": 0.8409090909090909,
+          "precision": 0.9487179487179487,
+          "alerts_per_1000": 0.2693339165064859,
+          "false_positive_rate": 1.381619396094162e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.9242424242424242,
+          "precision": 0.006842784227943238,
+          "alerts_per_1000": 41.042345276872965,
+          "false_positive_rate": 0.04077389107773221
+        },
+        "red": {
+          "recall": 0.7045454545454546,
+          "precision": 0.96875,
+          "alerts_per_1000": 0.22099193149250124,
+          "false_positive_rate": 6.90809698047081e-06
+        }
+      }
+    },
+    "legit payments made on a call: half": {
+      "payments": 441742,
+      "scam_payments": 151,
+      "model_only": {
+        "warning": {
+          "recall": 0.9602649006622517,
+          "precision": 0.3159041394335512,
+          "alerts_per_1000": 1.039068053298079,
+          "false_positive_rate": 0.0007110652164559513
+        },
+        "red": {
+          "recall": 0.7549668874172185,
+          "precision": 0.9743589743589743,
+          "alerts_per_1000": 0.26486048417402014,
+          "false_positive_rate": 6.793616717732019e-06
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.8675496688741722,
+          "precision": 0.010821974390747625,
+          "alerts_per_1000": 27.40287317031208,
+          "false_positive_rate": 0.027115588859374398
+        },
+        "red": {
+          "recall": 0.6225165562913907,
+          "precision": 0.9791666666666666,
+          "alerts_per_1000": 0.21732142291201653,
+          "false_positive_rate": 4.529077811821346e-06
+        }
+      }
+    },
+    "legit payments made on a call: double": {
+      "payments": 436415,
+      "scam_payments": 159,
+      "model_only": {
+        "warning": {
+          "recall": 0.9559748427672956,
+          "precision": 0.3318777292576419,
+          "alerts_per_1000": 1.049459803169002,
+          "false_positive_rate": 0.0007014230176776938
+        },
+        "red": {
+          "recall": 0.8176100628930818,
+          "precision": 0.9420289855072463,
+          "alerts_per_1000": 0.316212779120791,
+          "false_positive_rate": 1.8337856671312258e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.8742138364779874,
+          "precision": 0.004663803516306536,
+          "alerts_per_1000": 68.29279470229025,
+          "false_positive_rate": 0.06799906476930977
+        },
+        "red": {
+          "recall": 0.7295597484276729,
+          "precision": 0.9747899159663865,
+          "alerts_per_1000": 0.27267623706792843,
+          "false_positive_rate": 6.876696251742096e-06
+        }
+      }
+    },
+    "scam journeys that use an evasion: half": {
+      "payments": 434408,
+      "scam_payments": 135,
+      "model_only": {
+        "warning": {
+          "recall": 0.9851851851851852,
+          "precision": 0.2982062780269058,
+          "alerts_per_1000": 1.0266845914439882,
+          "false_positive_rate": 0.0007207447849624545
+        },
+        "red": {
+          "recall": 0.8074074074074075,
+          "precision": 0.9478260869565217,
+          "alerts_per_1000": 0.2647280897221046,
+          "false_positive_rate": 1.381619396094162e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.9259259259259259,
+          "precision": 0.007024839833651793,
+          "alerts_per_1000": 40.96149242187069,
+          "false_positive_rate": 0.04068638851597958
+        },
+        "red": {
+          "recall": 0.7555555555555555,
+          "precision": 0.9714285714285714,
+          "alerts_per_1000": 0.2417082558332259,
+          "false_positive_rate": 6.90809698047081e-06
+        }
+      }
+    },
+    "scam journeys that use an evasion: double": {
+      "payments": 434408,
+      "scam_payments": 135,
+      "model_only": {
+        "warning": {
+          "recall": 0.9111111111111111,
+          "precision": 0.28018223234624146,
+          "alerts_per_1000": 1.010570707721773,
+          "false_positive_rate": 0.0007276528819429253
+        },
+        "red": {
+          "recall": 0.7481481481481481,
+          "precision": 0.9528301886792453,
+          "alerts_per_1000": 0.24401023922211376,
+          "false_positive_rate": 1.151349496745135e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.8518518518518519,
+          "precision": 0.006454509737890779,
+          "alerts_per_1000": 41.014438039815104,
+          "false_positive_rate": 0.040762377582764756
+        },
+        "red": {
+          "recall": 0.6814814814814815,
+          "precision": 0.9787234042553191,
+          "alerts_per_1000": 0.2163864385554594,
+          "false_positive_rate": 4.60539798698054e-06
+        }
+      }
+    },
+    "victims who report the scam: half": {
+      "payments": 434405,
+      "scam_payments": 132,
+      "model_only": {
+        "warning": {
+          "recall": 0.9772727272727273,
+          "precision": 0.289237668161435,
+          "alerts_per_1000": 1.0266916817255787,
+          "false_positive_rate": 0.0007299555809364155
+        },
+        "red": {
+          "recall": 0.7575757575757576,
+          "precision": 0.9433962264150944,
+          "alerts_per_1000": 0.24401192435630345,
+          "false_positive_rate": 1.381619396094162e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.8712121212121212,
+          "precision": 0.0064465496944896014,
+          "alerts_per_1000": 41.065365269736766,
+          "false_positive_rate": 0.040813036960621545
+        },
+        "red": {
+          "recall": 0.6742424242424242,
+          "precision": 0.978021978021978,
+          "alerts_per_1000": 0.20948193506060012,
+          "false_positive_rate": 4.60539798698054e-06
+        }
+      }
+    },
+    "victims who report the scam: double": {
+      "payments": 434414,
+      "scam_payments": 141,
+      "model_only": {
+        "warning": {
+          "recall": 0.950354609929078,
+          "precision": 0.3004484304932735,
+          "alerts_per_1000": 1.026670411174594,
+          "false_positive_rate": 0.0007184420859689642
+        },
+        "red": {
+          "recall": 0.7801418439716312,
+          "precision": 0.9322033898305084,
+          "alerts_per_1000": 0.27163028815830065,
+          "false_positive_rate": 1.842159194792216e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.8865248226950354,
+          "precision": 0.0070311621104736195,
+          "alerts_per_1000": 40.924095448120916,
+          "false_positive_rate": 0.04064954533208374
+        },
+        "red": {
+          "recall": 0.6737588652482269,
+          "precision": 0.9693877551020408,
+          "alerts_per_1000": 0.22559125626706322,
+          "false_positive_rate": 6.90809698047081e-06
+        }
+      }
+    },
+    "new payers per day into an active mule: half": {
+      "payments": 434405,
+      "scam_payments": 132,
+      "model_only": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.29411764705882354,
+          "alerts_per_1000": 1.017483684580058,
+          "false_positive_rate": 0.0007184420859689642
+        },
+        "red": {
+          "recall": 0.7954545454545454,
+          "precision": 0.9459459459459459,
+          "alerts_per_1000": 0.25552192078820457,
+          "false_positive_rate": 1.381619396094162e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.8863636363636364,
+          "precision": 0.006567867969013136,
+          "alerts_per_1000": 41.007815287577266,
+          "false_positive_rate": 0.04075086408779731
+        },
+        "red": {
+          "recall": 0.6515151515151515,
+          "precision": 0.9662921348314607,
+          "alerts_per_1000": 0.20487793648783967,
+          "false_positive_rate": 6.90809698047081e-06
+        }
+      }
+    },
+    "new payers per day into an active mule: double": {
+      "payments": 434405,
+      "scam_payments": 132,
+      "model_only": {
+        "warning": {
+          "recall": 0.9772727272727273,
+          "precision": 0.2918552036199095,
+          "alerts_per_1000": 1.017483684580058,
+          "false_positive_rate": 0.0007207447849624545
+        },
+        "red": {
+          "recall": 0.8106060606060606,
+          "precision": 0.9553571428571429,
+          "alerts_per_1000": 0.25782392007458477,
+          "false_positive_rate": 1.151349496745135e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.9318181818181818,
+          "precision": 0.006918663516706041,
+          "alerts_per_1000": 40.92494331326757,
+          "false_positive_rate": 0.04065415073007072
+        },
+        "red": {
+          "recall": 0.696969696969697,
+          "precision": 0.9787234042553191,
+          "alerts_per_1000": 0.2163879329197408,
+          "false_positive_rate": 4.60539798698054e-06
+        }
+      }
+    }
+  }
+}

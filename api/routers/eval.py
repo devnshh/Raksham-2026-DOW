@@ -1,7 +1,8 @@
 """
 Results page (plan 1.7):
 - GET  /eval                 the page
-- GET  /v1/eval/latest       the last logged holdout run, how many runs there were, and its failure-case notes
+- GET  /v1/eval/latest       the last logged holdout run, how many runs there were, its failure-case notes,
+                             and the latest robustness run (ml/robustness.py) if there is one
 - POST /v1/eval/fresh        generates a world from a seed nobody has used and scores it live
 
 Fresh worlds run the same command as any evaluation (`ml/evaluate.py --role fresh`), leak tripwires
@@ -57,7 +58,9 @@ def latest_holdout_run() -> Dict[str, Any]:
     if not runs:
         raise HTTPException(status_code=404, detail="No holdout run has been logged yet (ml/evaluate.py --holdout)")
     n, path = runs[-1]
-    return {"runs_logged": len(runs), "result": json.loads(path.read_text()), "failure_notes": _failure_notes(n)}
+    robust = sorted(_RESULTS.glob("robustness_*.json"), key=lambda q: q.stat().st_mtime)
+    return {"runs_logged": len(runs), "result": json.loads(path.read_text()), "failure_notes": _failure_notes(n),
+            "robustness": json.loads(robust[-1].read_text()) if robust else None}
 
 
 @router.post("/v1/eval/fresh", dependencies=[Depends(require_analyst_key)])

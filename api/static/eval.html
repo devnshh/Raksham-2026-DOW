@@ -81,6 +81,12 @@
     <div class="wrap"><table id="fairness"></table></div>
   </section>
 
+  <section aria-labelledby="rob-h" id="rob" hidden>
+    <h2 id="rob-h">If the simulator's assumptions are wrong</h2>
+    <p class="sub" id="rob-sub"></p>
+    <div class="wrap"><table id="robustness"></table></div>
+  </section>
+
   <section aria-labelledby="fail-h">
     <h2 id="fail-h">Named failure cases</h2>
     <div class="notes" id="notes"></div>
@@ -186,6 +192,17 @@ async function loadLatest() {
     ["All genuine payments", pct(m.false_positive_rate, 2), pct(p.false_positive_rate, 2)],
     ...Object.keys(fo).flatMap((c) => Object.keys(fo[c]).map((k) => [groupName(c, k), pct(fo[c][k], 2), pct(fp[c][k], 2)])),
   ]);
+  const rob = data.robustness;
+  if (rob) {
+    $("rob").hidden = false;
+    $("rob-sub").textContent = `Key rates at half and double their assumed values, on a separate world (seed ${rob.seed}, ` +
+      `${num(rob.users, 0)} users). ${rob.note}`;
+    table($("robustness"), ["Variant", "Scams warned (model + policy)", "Warnings per 1,000 (model + policy)",
+                            "Scams warned (model only)", "Warnings per 1,000 (model only)"],
+      Object.entries(rob.runs).map(([name, r]) => [name.charAt(0).toUpperCase() + name.slice(1),
+        pct(r.model_plus_policy.warning.recall, 0), r.model_plus_policy.warning.alerts_per_1000.toFixed(1),
+        pct(r.model_only.warning.recall, 0), r.model_only.warning.alerts_per_1000.toFixed(1)]));
+  }
   $("notes").replaceChildren(...(data.failure_notes ? renderNotes(data.failure_notes) : [el("p", {}, "No notes logged for this run.")]));
 }
 

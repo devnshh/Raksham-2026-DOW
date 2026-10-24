@@ -182,6 +182,15 @@ def leave_one_scenario_out(te):
     return out
 
 
+def run_leak_tripwires():
+    """Plan 1.3: every evaluation runs the leak tests first and stops if any fails."""
+    leak = subprocess.run([sys.executable, "-m", "pytest", "-q", str(ML / "test_leakage.py")], cwd=ROOT,
+                          env={**os.environ, "PYTHONPATH": str(ROOT)}, capture_output=True, text=True)
+    print(leak.stdout.strip().splitlines()[-1])
+    if leak.returncode:
+        sys.exit("Leak tripwire failed; not scoring.\n" + leak.stdout)
+
+
 def git(*args):
     return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True).stdout.strip()
 
@@ -227,11 +236,7 @@ def main():
                  if not ln[3:].startswith(("ml/results", "ml/eval_log.md", "plan.md"))]
         if dirty:
             sys.exit("Commit first: the log records the commit that produced the numbers.\n" + "\n".join(dirty))
-    leak = subprocess.run([sys.executable, "-m", "pytest", "-q", str(ML / "test_leakage.py")], cwd=ROOT,
-                          env={**os.environ, "PYTHONPATH": str(ROOT)}, capture_output=True, text=True)
-    print(leak.stdout.strip().splitlines()[-1])
-    if leak.returncode:
-        sys.exit("Leak tripwire failed; not scoring.\n" + leak.stdout)
+    run_leak_tripwires()
 
     full = world(role, seed, a.users)
     thr_path, model_path = MODELS / "thresholds.json", MODELS / "satark_model.joblib"

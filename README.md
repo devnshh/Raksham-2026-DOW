@@ -103,7 +103,7 @@ The model looks at the hour of day. The demo user often pays between 13:00 and 1
 
 ### Results page
 
-`http://127.0.0.1:8000/eval` shows the last logged holdout run (`ml/eval_log.md`): model only against model plus policy, recall by scam type, false alarms by group and the named failure cases. "Score a fresh world" (needs the analyst key) generates a world from any unused seed and scores it live through `ml/evaluate.py`, leak checks included. The first run on a new checkout also generates the train and holdout worlds for the leak checks (about a minute and a half); later runs take seconds.
+`http://127.0.0.1:8000/eval` shows the last logged holdout run (`ml/eval_log.md`): model only against model plus policy, recall by scam type, false alarms by group and the named failure cases. "Score a fresh world" (needs the analyst key) generates a world from any unused seed and scores it live through `ml/evaluate.py`, leak checks included. The first run on a new checkout also generates the train and holdout worlds for the leak checks (about a minute and a half); later runs take seconds. `python ml/robustness.py` re-scores a separate world (seed 101) with key simulator rates at half and double (about 10 minutes); the page shows its latest run.
 
 ### Mule caught (analyst console)
 
