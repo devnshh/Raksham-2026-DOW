@@ -5,8 +5,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.provider.ContactsContract
+import android.telephony.PhoneNumberUtils
 import android.telephony.TelephonyManager
 import android.util.Log
 
@@ -26,6 +26,12 @@ class CallerCheckReceiver : BroadcastReceiver() {
         val prefs = CallerCheck.prefs(context)
         when (intent.getStringExtra(TelephonyManager.EXTRA_STATE)) {
             TelephonyManager.EXTRA_STATE_RINGING -> {
+                if (prefs.getBoolean(CallerCheck.KEY_IN_CALL, false)) {
+                    // A second call while one is in progress: we cannot tell which caller the user is
+                    // listening to, so neither counts as a saved contact.
+                    prefs.edit().putBoolean(CallerCheck.KEY_SAVED, false).apply()
+                    return
+                }
                 // The number arrives only with READ_CALL_LOG; the broadcast without it is ignored.
                 @Suppress("DEPRECATION")
                 val number = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER) ?: return
@@ -34,6 +40,7 @@ class CallerCheckReceiver : BroadcastReceiver() {
                     .putLong(CallerCheck.KEY_AT, System.currentTimeMillis())
                     .apply()
             }
+            TelephonyManager.EXTRA_STATE_OFFHOOK -> prefs.edit().putBoolean(CallerCheck.KEY_IN_CALL, true).apply()
             TelephonyManager.EXTRA_STATE_IDLE -> prefs.edit().clear().apply()
         }
     }
@@ -42,6 +49,7 @@ class CallerCheckReceiver : BroadcastReceiver() {
 object CallerCheck {
     internal const val KEY_SAVED = "caller_saved"
     internal const val KEY_AT = "checked_at"
+    internal const val KEY_IN_CALL = "in_call"
     private const val MIN_CONTACT_AGE_MS = 7L * 24 * 60 * 60 * 1000
     private const val MAX_CALL_MS = 3L * 60 * 60 * 1000
 
@@ -69,17 +77,22 @@ object CallerCheck {
 
     internal fun isEstablishedContact(context: Context, number: String): Boolean {
         if (context.checkSelfPermission(Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) return false
-        // Phone lookup gives the contact's id only; when it was last changed lives in the contacts table.
-        val lookup = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number))
+        // Exact match on the normalized number: the phone-lookup URI matches loosely (on some locales only
+        // the last digits), which a spoofed number could exploit.
+        val iso = (context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager)
+            ?.networkCountryIso?.uppercase()?.ifBlank { null } ?: "IN"
+        val e164 = PhoneNumberUtils.formatNumberToE164(number, iso) ?: return false
         return try {
-            val id = context.contentResolver.query(lookup, arrayOf(ContactsContract.PhoneLookup._ID), null, null, null)
-                ?.use { c -> if (c.moveToFirst()) c.getLong(0) else null } ?: return false
-            val contact = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, id.toString())
             context.contentResolver.query(
-                contact, arrayOf(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP), null, null, null
+                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(ContactsContract.CommonDataKinds.Phone.CONTACT_LAST_UPDATED_TIMESTAMP),
+                "${ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER} = ?", arrayOf(e164), null
             )?.use { c ->
-                if (!c.moveToFirst()) return false
-                val ageMs = System.currentTimeMillis() - c.getLong(0)
+                // Every contact holding this number must be established: a fresh copy earns no trust.
+                var newest = -1L
+                while (c.moveToNext()) newest = maxOf(newest, c.getLong(0))
+                if (newest < 0) return false
+                val ageMs = System.currentTimeMillis() - newest
                 Log.i("CallerCheck", "Caller is a contact last changed ${ageMs / 86_400_000} days ago")  // never the number
                 isEstablished(ageMs)
             } ?: false
