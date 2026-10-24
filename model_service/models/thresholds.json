@@ -1,5 +1,12 @@
 {
-  "red": 0.9933844208717346,
-  "amber": 0.6540762186050415,
-  "note": "Raw score cut-offs set on a separate validation world (simulator seed 33, realistic prevalence) at alert budgets red 0.03% / amber 0.1%. The test world (seed 22) was not used for tuning. Simulation only; not calibrated probabilities."
+  "red": 0.9973271489143372,
+  "amber": 0.8585662245750427,
+  "set_on": {
+    "world": "validation",
+    "seeds": [
+      33
+    ],
+    "users": 5000
+  },
+  "note": "Raw score cut-offs set on a separate validation world (simulator seed 33, realistic prevalence) at alert budgets red 0.03% / amber 0.1%. The holdout world (seed 22) was not used. Simulation only; not calibrated probabilities."
 }
