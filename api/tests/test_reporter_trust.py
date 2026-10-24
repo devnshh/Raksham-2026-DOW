@@ -25,6 +25,7 @@ def test_twenty_fresh_accounts_cannot_flag_an_honest_merchant(client: TestClient
 
 def test_an_established_reporter_counts_in_full(client: TestClient):
     vpa = "trust-test-payee@ybl"
+    _reports_prior(client, vpa)  # the reporter dealt with the payee (a risk check) before reporting
     _report(client, "raksham@oksbi", vpa)  # seeded: account about 13 months old, many payments
     assert _reports_prior(client, vpa)[1] == 1
 

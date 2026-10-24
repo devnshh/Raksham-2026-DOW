@@ -4,6 +4,14 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field, model_validator
 
 
+# A UPI ID: handle@psp, ASCII only (real VPAs are), outer spaces allowed (they are stripped). The cap
+# also bounds the look-alike check, whose cost grows with the handle's length.
+VPA = Field(max_length=255, pattern=r"^\s*[A-Za-z0-9._-]+@[A-Za-z][A-Za-z0-9.-]*\s*$")
+# Rupees: positive, finite, at most Rs 10 lakh (the largest UPI per-payment limit). Anything else would
+# be stored in the user's baseline and skew every later check.
+AMOUNT = Field(gt=0, le=1_000_000, allow_inf_nan=False)
+
+
 class SessionSignals(BaseModel):
     """Raw device and session dynamics sent by the client SDK."""
     on_call: bool = False
@@ -43,8 +51,8 @@ class RiskAssessmentRequest(BaseModel):
     txn_ref: Optional[str] = None
     user_ref: Optional[str] = None
     user_id: Optional[str] = None
-    payee_vpa: str
-    amount: float
+    payee_vpa: str = VPA
+    amount: float = AMOUNT
     entry_channel: str = "typed_vpa"
     session: SessionSignals = Field(default_factory=SessionSignals)
     context: ContextSignals = Field(default_factory=ContextSignals)
@@ -76,7 +84,7 @@ class RiskAssessmentResponse(BaseModel):
 class ReportRequest(BaseModel):
     """User scam reporting request payload."""
     reporter_id: str
-    payee_vpa: str
+    payee_vpa: str = VPA
     reason: str
     notes: Optional[str] = ""
     # Reporting from a warning: the reporter's own case for this payee, which is then marked cancelled.
@@ -119,6 +127,7 @@ class CaseResponse(BaseModel):
     created_at: str
     status: str = "open"  # "open", "completed" once paid, or "cancelled" when the user reported it as a scam
     dispute: Optional[str] = None  # "this_was_me", "false_alarm_pending" or "false_alarm_accepted"
+    hold_active: bool = False  # a red pause is still running (an analyst can release it)
     evidence_pack: Optional[dict[str, Any]] = None
 
 
@@ -157,8 +166,8 @@ class PaymentCompleteRequest(BaseModel):
     """Sent by the app after the PIN succeeds. Only completed payments update baselines and fan-in."""
     case_id: str
     user_ref: str
-    payee_vpa: str
-    amount: float
+    payee_vpa: str = VPA
+    amount: float = AMOUNT
     typing_ms: Optional[float] = None
     pauses: Optional[int] = None
     pin_secs: Optional[float] = None

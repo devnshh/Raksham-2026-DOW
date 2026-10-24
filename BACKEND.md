@@ -332,17 +332,20 @@ The policy engine (`api/policy/engine.py`) is written in pure Python with zero f
 1. Analyst-Confirmed Scam? ────────► (YES) ──► DECLINE (with appeal path)
            │ (NO)
            ▼
-2. Trusted Payee Rule ─────────────► (YES) ──► Has Family A (Coercion)?
+2. Trusted Payee Rule ─────────────► (YES) ──► Family A, a report, a bad link or a 3x jump?
    (3+ txns over 30+ days)                         ├──► (NO)  ──► GREEN (Silent Pass)
                                                    └──► (YES) ──► Bypass Exemption (Go to step 3)
            │
            ▼
 3. Eligibility Gate ───────────────► (NO)  ──► GREEN (Silent Pass)
-   (First-time payee OR amount_ratio >= 2.0 OR lookalike >= 0.70 OR Family A active)
+   (First-time payee OR amount_ratio >= 2.0 OR lookalike >= 0.70 OR Family A active
+    OR reported payee OR known-bad link OR scam-story note)
            │ (YES)
            ▼
 4. Scorer Execution (Stub / XGBoost)
-   (Fails open with device-only checks if timeout > 300ms or error occurs)
+   (A late score is still used and logged as scoring_slow. On an error or a non-finite score it
+    fails open with the checks that need no model: device signals, a reported payee, a known-bad
+    link, a large first payment to a stranger)
            │
            ▼
 5. Tier
@@ -391,5 +394,5 @@ Historical note: the old `satark-sdk` module has been removed; the app now uses 
 - **Note text never leaves the phone.** The app sends only `note_intent` (risk-sdk `NoteIntent.kt`). If an old client sends `note_text`, the server derives the intent and discards the text; it is never stored or scored.
 - **Unknown is unknown.** A payee we have not seen before has unknown account age (`payee_age_known=false`): the model gets a neutral value and no "young account" reason is shown. Unmeasured typing or pause values score as no evidence; PIN time is ignored at risk-check time because the check runs before the PIN screen.
 - **Reasons are only shown when true.** A model reason is shown only if that feature is actually in its risky state (e.g. no `QR_ENTRY` for a typed UPI ID).
-- **Reports count once per reporter, weighted by the reporter's history**: full weight once the account is 30 days old with 5 completed payments, proportionally less before that, and all newer accounts together add at most half a report. Twenty brand-new accounts reporting an honest merchant do not flag it. Analyst/registry counts are kept separate and unweighted.
+- **Reports count once per reporter, only from someone who dealt with the payee (a risk check or a payment), weighted by the reporter's history**: full weight once the account is 30 days old (from the users table, else the first completed payment) with 5 completed payments, proportionally less before that, and all newer accounts together add at most half a report. Twenty brand-new accounts reporting an honest merchant do not flag it. Analyst/registry counts are kept separate and unweighted.
 - **Thresholds** in `model_service/models/thresholds.json` were set on a separate validation world (simulator seed 33), not on the test world. Simulation only.

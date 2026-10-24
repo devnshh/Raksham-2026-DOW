@@ -4,6 +4,7 @@ Enforces the strict contract from README Section 17.
 """
 
 import json
+import math
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
@@ -60,6 +61,24 @@ REQUIRED_NON_LINK_FEATURES = [
 ]
 
 
+def hold_ends_at(row: Dict[str, Any]) -> Optional[datetime]:
+    """When a red case's safety hold ends, or None if no hold is running (not red, paid, cancelled,
+    released by an analyst, or expired)."""
+    if row["tier"] != "red":
+        return None
+    evidence = json.loads(row["evidence_pack"] or "{}")
+    if evidence.get("completed") or evidence.get("cancelled") or evidence.get("hold_released_by"):
+        return None
+    created = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+    end = created + timedelta(minutes=int(row["hold_minutes"]))
+    return end if datetime.now(timezone.utc) < end else None
+
+
+def _active_hold(store: SQLiteFeatureStore, user_id: str, payee_vpa: str) -> Optional[Dict[str, Any]]:
+    """The red case whose hold still covers this user and payee, if any."""
+    return next((r for r in store.red_cases_for_pair(user_id, payee_vpa) if hold_ends_at(r)), None)
+
+
 def _safe_float(val: Any) -> Optional[float]:
     if val is None:
         return None
@@ -112,6 +131,18 @@ def assess_risk(
 
     # 3. Retrieve Payee Risk Profile from registry (fan-in excludes this payer)
     payee_profile = store.get_payee_profile(payee_vpa, exclude_payer=user_id)
+
+    # A running red pause covers every new check for this payee until it ends, whatever the call,
+    # screen, entry channel or note look like now: "cut the call and try again" must not skip it.
+    held = None if payee_profile["is_confirmed_scam"] else _active_hold(store, user_id, payee_vpa)
+    if held:
+        held_reasons = json.loads(held["reasons"] or "[]")
+        audit.append_log(case_id=held["case_id"], user_id=user_id, payee_vpa=payee_vpa,
+                         tier="red_hold_still_active", reasons=held_reasons)
+        remaining = hold_ends_at(held) - datetime.now(timezone.utc)
+        return RiskAssessmentResponse(tier="red", reasons=held_reasons, template_id=held["template_id"],
+                                      hold_minutes=max(1, math.ceil(remaining.total_seconds() / 60)),
+                                      case_id=held["case_id"])
 
     # 4. Check historical relationship with payee
     trusted_history = store.get_trusted_payee_history(user_id, payee_vpa)
@@ -384,6 +415,9 @@ def appeal_case(
     if any(features.get(k) for k in ("on_call", "screen_shared", "remote_app_present", "remote_app_new")):
         # A scammer on the line or controlling the screen could have coached this tap.
         raise HTTPException(status_code=409, detail="Not available while a call or remote session was active")
+    if store.red_cases_for_pair(row["user_id"], row["payee_vpa"]):
+        # The pair drew a red pause recently (often the same payment retried after the call ended).
+        raise HTTPException(status_code=409, detail="Not available: this payee had a safety pause in the last 24 hours")
     store.trust_pair(row["user_id"], row["payee_vpa"], "user", case_id, features.get("payee_reports_prior") or 0)
     store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
                                int(row["hold_minutes"]), {"dispute": "this_was_me"})
@@ -423,12 +457,12 @@ def complete_payment(
     row = _load_case_for_user(store, req.case_id, req.user_ref)
     if row["payee_vpa"] != req.payee_vpa.strip().lower() or abs(float(row["amount"]) - float(req.amount)) > 0.01:
         raise HTTPException(status_code=409, detail="Payee or amount does not match the risk check")
-    if row["tier"] == "decline":
+    if row["tier"] == "decline" or store.get_payee_profile(row["payee_vpa"])["is_confirmed_scam"]:
+        # Also when analysts confirmed the payee as a scam after this check ran.
         raise HTTPException(status_code=403, detail="Declined payments cannot be completed")
-    if row["tier"] == "red":
-        created = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
-        if datetime.now(timezone.utc) < created + timedelta(minutes=int(row["hold_minutes"])):
-            raise HTTPException(status_code=409, detail="Safety hold is still active")
+    if hold_ends_at(row) or _active_hold(store, row["user_id"], row["payee_vpa"]):
+        # This case's own hold, or a red pause on another check for the same payee.
+        raise HTTPException(status_code=409, detail="Safety hold is still active")
 
     evidence = json.loads(row["evidence_pack"] or "{}")
     if evidence.get("completed"):

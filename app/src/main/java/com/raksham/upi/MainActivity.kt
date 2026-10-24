@@ -13,6 +13,8 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,10 +24,15 @@ import androidx.navigation.navArgument
 import com.raksham.risk.session.ScriptedSignalSource
 import com.raksham.risk.session.SessionSignalSourceProvider
 import com.raksham.upi.data.Contact
-import com.raksham.upi.data.MockData
 import com.raksham.upi.ui.screens.*
 import com.raksham.upi.ui.theme.Motion
 import com.raksham.upi.ui.theme.RakshamTheme
+
+// Contact holds only strings, a number and flags, so it is saved field by field.
+private val ContactSaver = listSaver<Contact?, Any>(
+    save = { c -> if (c == null) emptyList() else listOf(c.id, c.name, c.phone, c.upiId, c.avatarInitials, c.colorHex, c.isVerified) },
+    restore = { l -> if (l.isEmpty()) null else Contact(l[0] as String, l[1] as String, l[2] as String, l[3] as String, l[4] as String, l[5] as Long, l[6] as Boolean) }
+)
 
 class MainActivity : ComponentActivity() {
 
@@ -41,17 +48,18 @@ class MainActivity : ComponentActivity() {
             RakshamTheme {
                 val navController = rememberNavController()
 
-                // State to pass selected contact and amount to payment amount screen
-                var activeContact by remember { mutableStateOf<Contact?>(null) }
-                var activeAmount by remember { mutableStateOf<Double?>(null) }
-                var activeEntryChannel by remember { mutableStateOf("typed_vpa") }
-                var activeNote by remember { mutableStateOf("") }
-                var customScenarioActive by remember { mutableStateOf(false) }
+                // State to pass selected contact and amount to payment amount screen. Saveable, so a
+                // rotation or the system killing the app in the background keeps the same payee.
+                var activeContact by rememberSaveable(stateSaver = ContactSaver) { mutableStateOf<Contact?>(null) }
+                var activeAmount by rememberSaveable { mutableStateOf<Double?>(null) }
+                var activeEntryChannel by rememberSaveable { mutableStateOf("typed_vpa") }
+                var activeNote by rememberSaveable { mutableStateOf("") }
+                var customScenarioActive by rememberSaveable { mutableStateOf(false) }
 
                 // Success receipt state
-                var successAmount by remember { mutableDoubleStateOf(0.0) }
-                var successContact by remember { mutableStateOf<Contact?>(null) }
-                var successRefId by remember { mutableStateOf("") }
+                var successAmount by rememberSaveable { mutableStateOf(0.0) }
+                var successContact by rememberSaveable(stateSaver = ContactSaver) { mutableStateOf<Contact?>(null) }
+                var successRefId by rememberSaveable { mutableStateOf("") }
 
                 // Shared-axis X: the new screen slides in a short distance and fades up; Back reverses it.
                 NavHost(
@@ -141,7 +149,11 @@ class MainActivity : ComponentActivity() {
 
                     // Payment Amount & Satark Risk Interception Screen
                     composable("payment_amount") {
-                        val contact = activeContact ?: MockData.contacts.first()
+                        // No payee (state lost): go back rather than pay a default contact.
+                        val contact = activeContact ?: run {
+                            LaunchedEffect(Unit) { navController.popBackStack() }
+                            return@composable
+                        }
                         DisposableEffect(Unit) {
                             onDispose {
                                 if (customScenarioActive) {
@@ -170,7 +182,10 @@ class MainActivity : ComponentActivity() {
 
                     // Transaction Success & Digital Receipt Screen
                     composable("success") {
-                        val contact = successContact ?: MockData.contacts.first()
+                        val contact = successContact ?: run {
+                            LaunchedEffect(Unit) { navController.popBackStack("home", inclusive = false) }
+                            return@composable
+                        }
                         TransactionSuccessScreen(
                             amount = successAmount,
                             contact = contact,

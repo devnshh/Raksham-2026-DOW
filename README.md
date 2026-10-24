@@ -82,7 +82,7 @@ ANDROID_HOME=~/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexe
 
 ## Before every demo
 
-1. Run `python scripts/reset_demo_db.py`. Seeded mule activity expires after 24 hours, each red pause holds that payment for 30 minutes, and earlier runs' payments and appeals change later checks.
+1. Run `python scripts/reset_demo_db.py`. Seeded mule activity expires after 24 hours, each red pause holds that payee for that user for 30 minutes (to re-run a red scenario sooner, press "Release hold" on the case in the analyst console), and earlier runs' payments and appeals change later checks.
 2. Start the backend and check `curl http://127.0.0.1:8000/health`.
 3. On a real phone, run `adb reverse tcp:8000 tcp:8000` again after reconnecting USB.
 4. Open the app once after installing. The first check after a fresh install is the slowest; the app warms up its connection at launch and waits up to 2 seconds before showing the fallback warning.

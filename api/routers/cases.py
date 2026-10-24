@@ -3,13 +3,14 @@ Case Management Endpoints: GET /v1/cases, GET /v1/cases/{id}
 """
 
 import json
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 
 from api.models import CaseResponse, ConfirmScamRequest
 from api.store.sqlite_store import SQLiteFeatureStore
 from api.store.audit_store import AuditLogStore
-from api.routers.assess import get_audit_store, get_feature_store
+from api.routers.assess import get_audit_store, get_feature_store, hold_ends_at
 from api.security import require_analyst_key
 
 router = APIRouter(prefix="/v1", tags=["cases"], dependencies=[Depends(require_analyst_key)])
@@ -52,7 +53,8 @@ def list_cases(
                 hold_minutes=int(r["hold_minutes"]),
                 created_at=r["created_at"],
                 status=_status(evidence),
-                dispute=evidence.get("dispute")
+                dispute=evidence.get("dispute"),
+                hold_active=hold_ends_at(r) is not None
             )
         )
 
@@ -92,8 +94,35 @@ def get_case_evidence(
         created_at=row["created_at"],
         status=_status(evidence_pack),
         dispute=evidence_pack.get("dispute"),
+        hold_active=hold_ends_at(row) is not None,
         evidence_pack=evidence_pack
     )
+
+
+@router.post("/cases/{case_id}/release")
+def release_hold(
+    case_id: str,
+    req: ConfirmScamRequest,
+    store: SQLiteFeatureStore = Depends(get_feature_store),
+    audit: AuditLogStore = Depends(get_audit_store)
+) -> Dict[str, Any]:
+    """An analyst ends a red pause early after checking with the user (for example on a call back),
+    so this payment can go ahead. Logged in the audit chain. The next risk check for the payee is
+    a fresh one and can pause again."""
+    row = store.get_case(case_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+    analyst = req.analyst_id.strip().lower()
+    if not analyst:
+        raise HTTPException(status_code=422, detail="analyst_id is required")
+    if hold_ends_at(row) is None:
+        raise HTTPException(status_code=409, detail="This case has no safety hold running")
+    store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
+                               int(row["hold_minutes"]),
+                               {"hold_released_by": analyst, "hold_released_at": datetime.now(timezone.utc).isoformat()})
+    audit.append_log(case_id=case_id, user_id=f"analyst:{analyst}", payee_vpa=row["payee_vpa"],
+                     tier="analyst_release_hold", reasons=["HOLD_RELEASED"])
+    return {"case_id": case_id, "hold_released_by": analyst}
 
 
 
@@ -115,9 +144,13 @@ def accept_appeal(
         raise HTTPException(status_code=409, detail="This case has no false-alarm report waiting for review")
     features = json.loads(row["feature_vector"] or "{}")
     store.trust_pair(row["user_id"], row["payee_vpa"], "analyst", case_id, features.get("payee_reports_prior") or 0)
+    updates = {"dispute": "false_alarm_accepted", "appeal_accepted_by": req.analyst_id}
+    if hold_ends_at(row):
+        # Accepting the appeal also ends this case's pause, so the next check is fresh.
+        updates.update(hold_released_by=req.analyst_id.strip().lower(),
+                       hold_released_at=datetime.now(timezone.utc).isoformat())
     store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
-                               int(row["hold_minutes"]),
-                               {"dispute": "false_alarm_accepted", "appeal_accepted_by": req.analyst_id})
+                               int(row["hold_minutes"]), updates)
     audit.append_log(case_id=case_id, user_id=f"analyst:{req.analyst_id.strip().lower()}",
                      payee_vpa=row["payee_vpa"], tier="analyst_accept_appeal", reasons=["APPEAL_ACCEPTED"])
     return {"case_id": case_id, "dispute": "false_alarm_accepted", "payee_still_declined": row["tier"] == "decline"}

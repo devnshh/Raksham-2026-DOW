@@ -167,6 +167,8 @@ def test_user_scam_reporting(client: TestClient):
         "reason": "Digital arrest scam call",
         "notes": "Claimed to be CBI officer"
     }
+    # Reports count only from someone who dealt with the payee: here, a risk check on them.
+    client.post("/v1/risk/assess", json={"user_ref": "raksham@oksbi", "payee_vpa": payee, "amount": 5000.0})
     resp = client.post("/v1/report", json=rep_payload)
     assert resp.status_code == 200
     data = resp.json()

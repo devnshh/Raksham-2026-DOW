@@ -231,7 +231,7 @@ async function loadCases() {
       el("td", {}, el("div", { class: "vpa" }, c.payee_vpa), el("div", { class: "reasons" }, c.user_ref)),
       el("td", { class: "amt" }, rupees(c.amount)),
       el("td", { class: "reasons" }, c.reasons.map(label).join(", ") || "None"),
-      el("td", {}, c.status === "completed" ? "Paid" : c.status === "cancelled" ? "Cancelled, reported as scam" : "Not paid", dispute(c)));
+      el("td", {}, c.status === "completed" ? "Paid" : c.status === "cancelled" ? "Cancelled, reported as scam" : "Not paid", dispute(c), release(c)));
     const open = () => openPayee(c.payee_vpa);
     tr.addEventListener("click", open);
     tr.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); });
@@ -335,6 +335,23 @@ function dispute(c) {
     } catch (err) { btn.disabled = false; btn.textContent = "Accept appeal (retry)"; }
   });
   return el("div", {}, el("div", { class: "disputed" }, "False alarm reported"), btn);
+}
+
+// A running red pause: an analyst who has checked with the user can end it early.
+function release(c) {
+  if (!c.hold_active) return null;
+  const btn = el("button", { class: "btn btn-plain small", type: "button" }, "Release hold");
+  btn.addEventListener("click", async (e) => {
+    e.stopPropagation();  // the row click opens the payee
+    const id = analyst.value.trim();
+    if (!id) { analyst.focus(); btn.textContent = "Enter analyst ID first"; return; }
+    btn.disabled = true;
+    try {
+      await api(`/v1/cases/${encodeURIComponent(c.case_id)}/release`, { analyst_id: id });
+      btn.replaceWith(el("div", { class: "reasons" }, `Hold released by ${id}`));
+    } catch (err) { btn.disabled = false; btn.textContent = "Release hold (retry)"; }
+  });
+  return el("div", {}, el("div", { class: "disputed" }, "Safety hold running"), btn);
 }
 
 async function act(action) {

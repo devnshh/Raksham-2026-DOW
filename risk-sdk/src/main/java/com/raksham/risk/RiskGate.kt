@@ -14,6 +14,7 @@ import com.raksham.risk.template.ReasonMapper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -38,15 +39,17 @@ object RiskGate {
         // check after launch pays class loading and JSON setup; 600 ms missed it on slow phones.
         // Timed on the IO thread: on the caller's (main) thread a janky frame would count
         // against the budget and turn a fast answer into CHECK_UNAVAILABLE.
-        val response = withContext(Dispatchers.IO) {
-            withTimeoutOrNull(2000L) {
-                try {
-                    apiClient.assessRisk(payment, signals)
-                } catch (e: Exception) {
-                    null
-                }
+        // The blocking HTTP call runs in its own job and the 2000 ms races it: withTimeoutOrNull
+        // cannot interrupt HttpURLConnection, so a server sending bytes slowly held the check for
+        // over a minute. An abandoned call ends on its own socket timeouts.
+        val call = backgroundScope.async {
+            try {
+                apiClient.assessRisk(payment, signals)
+            } catch (e: Exception) {
+                null
             }
         }
+        val response = withContext(Dispatchers.IO) { withTimeoutOrNull(2000L) { call.await() } }
 
         if (response == null) {
             return fallbackUnavailableDecision(payment)

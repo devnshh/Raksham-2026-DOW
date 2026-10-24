@@ -7,6 +7,7 @@ import logging
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -69,6 +70,14 @@ app.include_router(policy_router)
 app.include_router(internal_router)
 app.include_router(console_router)
 app.include_router(eval_router)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """422 without echoing the input back: a NaN amount cannot be written as JSON (the default handler
+    crashed with a 500), and the payload holds VPAs that need not travel back."""
+    errors = [{"loc": list(e.get("loc", ())), "msg": e.get("msg", ""), "type": e.get("type", "")} for e in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 
 @app.exception_handler(Exception)

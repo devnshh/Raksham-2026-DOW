@@ -99,6 +99,9 @@ def test_questionnaire_raises_but_never_lowers(client: TestClient):
 def test_reports_count_once_per_reporter(client: TestClient):
     payee = "fix-reported-payee@ybl"
     # Seeded established accounts: brand-new reporters add no weight (plan 4.3, tested separately).
+    # Each had a risk check on the payee: reports from people who never dealt with it do not count.
+    for reporter in ("default_user", "u-hash-9f2c"):
+        _assess(client, reporter, payee, 2000.0)
     body = {"reporter_id": "default_user", "payee_vpa": payee, "reason": "scam call"}
     assert client.post("/v1/report", json=body).json()["prior_reports_count"] == 1
     assert client.post("/v1/report", json=body).json()["prior_reports_count"] == 1

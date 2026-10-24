@@ -304,7 +304,10 @@ class SQLiteFeatureStore(BaseFeatureStore):
         """
         Analyst/registry report count plus in-app reports weighted by each reporter's history.
         A reporter counts fully once their account is 30 days old and has 5 completed payments,
-        and proportionally before that; unknown accounts count as brand new (weight 0). All
+        and proportionally before that. Account age comes from the users table when there is a row
+        (seeded accounts), else from the reporter's first completed payment; unknown accounts count
+        as brand new (weight 0). A report counts only from someone who dealt with this payee (a risk
+        check or a payment to them), so nobody can flag a business they never paid. All
         not-yet-established reporters together add at most half a report, so a crowd of fresh
         accounts can never flag a payee on its own. Each reporter counts once per payee.
         """
@@ -314,16 +317,24 @@ class SQLiteFeatureStore(BaseFeatureStore):
         cursor.execute(
             """
             SELECT r.reporter_id,
-                   COALESCE(julianday('now') - julianday(MIN(u.created_at)), 0) AS age_days,
-                   (SELECT COUNT(*) FROM transactions t WHERE t.user_id = r.reporter_id) AS payments
-            FROM (SELECT DISTINCT reporter_id FROM reports WHERE payee_vpa = ?) r
-            LEFT JOIN users u ON u.user_id = r.reporter_id
-            GROUP BY r.reporter_id;
+                   COALESCE(
+                       julianday('now') - julianday((SELECT MIN(u.created_at) FROM users u
+                                                     WHERE u.user_id = r.reporter_id)),
+                       julianday('now') - julianday((SELECT MIN(t.timestamp_ms) FROM transactions t
+                                                     WHERE t.user_id = r.reporter_id) / 1000.0, 'unixepoch'),
+                       0) AS age_days,
+                   (SELECT COUNT(*) FROM transactions t WHERE t.user_id = r.reporter_id) AS payments,
+                   EXISTS (SELECT 1 FROM cases c WHERE c.user_id = r.reporter_id AND c.payee_vpa = ?)
+                       OR EXISTS (SELECT 1 FROM transactions t
+                                  WHERE t.user_id = r.reporter_id AND t.payee_vpa = ?) AS dealt
+            FROM (SELECT DISTINCT reporter_id FROM reports WHERE payee_vpa = ?) r;
             """,
-            (clean_vpa,)
+            (clean_vpa, clean_vpa, clean_vpa)
         )
         established, newcomers = 0.0, 0.0
         for row in cursor.fetchall():
+            if not row["dealt"]:
+                continue
             w = reporter_weight(row["age_days"], row["payments"])
             if w >= 1.0:
                 established += 1.0
@@ -407,6 +418,21 @@ class SQLiteFeatureStore(BaseFeatureStore):
         if not row:
             return None
         return dict(row)
+
+    def red_cases_for_pair(self, user_id: str, payee_vpa: str, within_hours: int = 24) -> List[Dict[str, Any]]:
+        """This user's red cases for this payee in the last `within_hours`, newest first."""
+        since = (datetime.now(timezone.utc) - timedelta(hours=within_hours)).isoformat()
+        with get_db(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT * FROM cases
+                WHERE user_id = ? AND payee_vpa = ? AND tier = 'red' AND created_at >= ?
+                ORDER BY created_at DESC;
+                """,
+                (user_id.strip().lower(), payee_vpa.strip().lower(), since)
+            )
+            return [dict(r) for r in cursor.fetchall()]
 
     def list_cases(
         self,

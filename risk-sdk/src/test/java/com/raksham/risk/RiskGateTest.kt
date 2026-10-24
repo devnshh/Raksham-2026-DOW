@@ -61,6 +61,33 @@ class RiskGateTest {
     }
 
     @Test
+    fun testSlowServerStillAnswersWithinTwoSeconds() = runBlocking {
+        // A server that sends the response one byte every 400 ms: each read succeeds, so the socket
+        // read timeout never fires. The check must still give up at about 2 seconds.
+        val server = java.net.ServerSocket(0)
+        val drip = Thread {
+            runCatching {
+                server.accept().use { s ->
+                    s.getInputStream().read(ByteArray(4096))
+                    val out = s.getOutputStream()
+                    out.write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 200\r\n\r\n".toByteArray())
+                    repeat(200) { out.write('{'.code); out.flush(); Thread.sleep(400) }
+                }
+            }
+        }.apply { isDaemon = true; start() }
+        RiskGate.setBaseUrl("http://127.0.0.1:${server.localPort}")
+
+        val started = System.currentTimeMillis()
+        val decision = RiskGate.check(PaymentRequest(payeeVpa = "some.payee@oksbi", amount = 1500.0))
+        val took = System.currentTimeMillis() - started
+
+        assertEquals(RiskTier.AMBER, decision.tier)
+        assertTrue(decision.isCheckUnavailable)
+        assertTrue("check took $took ms", took < 3000)
+        server.close(); drip.interrupt()
+    }
+
+    @Test
     fun testScriptedSignalSourceSwapping() {
         val scripted = ScriptedSignalSource(
             SessionSignals(on_call = true, screen_shared = true, app_switches = 5)

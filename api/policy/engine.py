@@ -3,6 +3,7 @@ Pure Python Policy Engine for SATARK scam-interruption layer.
 Strictly NO FastAPI imports, 100% unit-testable.
 """
 
+import math
 import time
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -18,6 +19,12 @@ from api.config import TEMPLATE_MAP_PATH, POLICY_FILE_PATH
 def strong_coercion(features: Dict[str, Any]) -> bool:
     """Signals strong enough to warn on their own: someone is watching or controlling the screen."""
     return bool(features.get("screen_shared") or features.get("remote_app_new"))
+
+
+def reported_or_bad_link(features: Dict[str, Any]) -> bool:
+    """The payee has been reported or the payment came from a known-bad link: a shortcut that skips
+    the model (trusted payee, eligibility gate) must not apply."""
+    return bool((features.get("payee_reports_prior") or 0) > 0 or features.get("link_bad") == 1)
 
 
 def apply_questionnaire(
@@ -199,13 +206,19 @@ class PolicyEngine:
 
     def _large_first_payment_to_stranger(self, features: Dict[str, Any]) -> bool:
         """A first payment of at least the configured amount to someone who is neither a saved contact
-        nor a verified merchant."""
+        nor a verified merchant. Picking the payee from contacts does not count while a caller who is
+        not a saved contact is on the line, or when the handle looks like a brand ("save my number as
+        SBI Officer, then pay from contacts")."""
         floor = float(self.config.get("stranger_amount_floor", 25000))
         try:
             amount = float(features.get("amount") or 0)
         except (TypeError, ValueError):
             return False
-        return bool(features.get("payee_first_time")) and features.get("entry_channel") != "contact" \
+        unknown_caller = bool(features.get("on_call")) and not features.get("caller_in_contacts")
+        brand_like = float(features.get("lookalike_score") or 0) >= \
+            float(self.config.get("eligibility_gate", {}).get("bypass_on_lookalike", 0.70))
+        from_contacts = features.get("entry_channel") == "contact" and not unknown_caller and not brand_like
+        return bool(features.get("payee_first_time")) and not from_contacts \
             and not features.get("payee_verified") and amount >= floor
 
     def _default_config(self) -> Dict[str, Any]:
@@ -265,9 +278,12 @@ class PolicyEngine:
         """
         Executes the decision flow in strict order:
         1. Analyst-confirmed scam payee -> DECLINE
-        2. Trusted payee rule -> GREEN silently unless Family A fires
-        3. Eligibility gate -> score only first-time or unusual amount; else GREEN silently
-        4. Scorer invocation (with fail-open on timeout >300ms or error)
+        2. Trusted payee rule -> GREEN silently unless Family A fires, the payee was reported, the link
+           is known bad, or the amount jumps 3x over the last payment to them
+        3. Eligibility gate -> score only first-time, unusual amount, reported payee, bad link or
+           scam-story note; else GREEN silently
+        4. Scorer invocation (a late score is still used; on error or a non-finite score, fail open
+           with the checks that need no model)
         5. Tier: RED needs score >= red_threshold and >=2 families; AMBER needs score >= amber
            threshold, screen sharing / a new remote-access app, or a large first payment to a stranger
         6. Vouched-for payee can lower later warnings (never during a call or remote session)
@@ -314,7 +330,15 @@ class PolicyEngine:
             min_days = self.config.get("trusted_payee", {}).get("min_history_days", 30)
 
             if tx_count >= min_tx and history_days >= min_days:
-                if not has_family_a:
+                # Trust earned on small payments does not cover a payee reported since, a known-bad
+                # link, or a sudden jump (3x or more over the last payment to them): account takeover
+                # of a regular payee, or a task scam that built history first.
+                big_step = float(features.get("escalation_ratio") or 1.0) >= 3
+                if has_family_a:
+                    applied_rules.append("trusted_payee_bypassed_by_family_a")
+                elif reported_or_bad_link(features) or big_step:
+                    applied_rules.append("trusted_payee_bypassed_by_risk")
+                else:
                     applied_rules.append("trusted_payee_silent_pass")
                     return PolicyDecision(
                         tier="green",
@@ -326,8 +350,6 @@ class PolicyEngine:
                         family_flags={"A": False, "B": False, "C": False, "D": False},
                         applied_rules=applied_rules
                     )
-                else:
-                    applied_rules.append("trusted_payee_bypassed_by_family_a")
 
         # ---------------------------------------------------------------------
         # Step 3: Eligibility gate
@@ -344,7 +366,10 @@ class PolicyEngine:
             payee_first_time or
             (amount_ratio >= min_amount_ratio) or
             (has_family_a and gate_cfg.get("bypass_on_family_a", True)) or
-            (lookalike >= lookalike_bypass)
+            (lookalike >= lookalike_bypass) or
+            # A reported payee, a known-bad link or a scam-story note always reaches the model.
+            reported_or_bad_link(features) or
+            features.get("note_intent") in SUSPICIOUS_INTENTS
         )
 
         if not is_eligible:
@@ -393,19 +418,20 @@ class PolicyEngine:
                     else:
                         raise ModelServiceError(str(val_err))
 
-                elapsed_ms = (time.perf_counter() - start_time) * 1000.0
-                if elapsed_ms > timeout_limit_ms:
-                    has_error_or_timeout = True
-                    applied_rules.append("scoring_timeout_exceeded")
-                else:
-                    if isinstance(raw_out, dict):
-                        fusion_score_val = float(raw_out["fusion_score"])
-                        model_reasons = list(raw_out.get("reasons", []))
-                        tier_hint = raw_out.get("tier_hint")
-                    elif isinstance(raw_out, ScoreResult):
-                        fusion_score_val = raw_out.score
-                        model_reasons = list(raw_out.top_reasons)
-                        score_res = raw_out
+                # A score that arrived late is still used: the time is already spent, and dropping it
+                # would turn a red mule into a fail-open green. Logged so slow scoring shows up.
+                if (time.perf_counter() - start_time) * 1000.0 > timeout_limit_ms:
+                    applied_rules.append("scoring_slow")
+                if isinstance(raw_out, dict):
+                    fusion_score_val = float(raw_out["fusion_score"])
+                    model_reasons = list(raw_out.get("reasons", []))
+                    tier_hint = raw_out.get("tier_hint")
+                elif isinstance(raw_out, ScoreResult):
+                    fusion_score_val = raw_out.score
+                    model_reasons = list(raw_out.top_reasons)
+                    score_res = raw_out
+                if fusion_score_val is None or not math.isfinite(fusion_score_val):
+                    raise ValueError(f"unusable score {fusion_score_val!r}")
             except ModelServiceError as mse:
                 # Model service down / timeout / 422 error -> Safe fallback tier amber with CHECK_UNAVAILABLE
                 reasons = ["CHECK_UNAVAILABLE"]
@@ -436,6 +462,14 @@ class PolicyEngine:
                 reasons.append("REMOTE_APP_ACTIVE")
             if features.get("on_call", False):
                 reasons.append("ON_CALL")
+            # Checks that need no model still run: a reported payee, a known-bad link, a large first
+            # payment to a stranger.
+            if (features.get("payee_reports_prior") or 0) > 0:
+                reasons.append("PAYEE_REPORTED")
+            if features.get("link_bad") == 1:
+                reasons.append("BAD_LINK")
+            if self._large_first_payment_to_stranger(features):
+                reasons.append("NEW_PAYEE")
 
             # In fail-open, if critical device compromise is present, raise amber caution, else green
             if reasons:
