@@ -6,7 +6,6 @@ import com.raksham.risk.model.RiskDecision
 import com.raksham.risk.model.RiskTier
 import com.raksham.risk.session.ScriptedSignalSource
 import com.raksham.risk.session.SessionSignalSourceProvider
-import com.raksham.upi.ui.components.SimulatedTrustedContactController
 import com.raksham.upi.ui.screens.PaymentScreenController
 import kotlinx.coroutines.delay
 
@@ -28,7 +27,6 @@ object ScenarioPlayer {
         // 1. Swap in ScriptedSignalSource for the run
         val scriptedSignals = ScriptedSignalSource(scenario.signals)
         SessionSignalSourceProvider.setScriptedSource(scriptedSignals)
-        SimulatedTrustedContactController.scriptedOutcome = scenario.trustedContactBehavior
 
         try {
             // Step 1: Entering Payee & Typing Animation

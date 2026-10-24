@@ -75,6 +75,7 @@ ANDROID_HOME=~/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexe
 - **UPI PIN:** any 6 digits.
 - **Money tab:** transaction history. **You tab:** profile, bank accounts and, in debug builds, the **Simulation Lab** (scripted scenarios scored against the API, and the API address).
 - Satark stays invisible on normal payments. It appears only as the amber warning, the red pause or the decline screen, in English and Hindi.
+- **Ask my trusted contact** (on the red pause) opens the phone's SMS app or WhatsApp with the question already written; the user picks the contact and the reply arrives there. The pause keeps counting down meanwhile.
 
 ## Before every demo
 
@@ -136,5 +137,5 @@ Android unit tests (with Gradle JDK 17):
 - The model and thresholds come from our own simulator, not real bank data. Numbers are simulation results, not real-world accuracy.
 - Screen sharing is detected only as an extra display (casting or mirroring); `device_new` and failed PIN attempts are not measured in this demo.
 - The amber warning needs a live call detected by the phone; on an emulator use a real device or the Simulation Lab.
-- QR scanning is simulated (sample codes, no camera). The trusted contact's reply is simulated. The Simulation Lab scores scenarios but does not open the warning screens.
+- QR scanning is simulated (sample codes, no camera). The Simulation Lab scores scenarios but does not open the warning screens.
 - One demo user (`raksham@oksbi`) is hard-coded in the app.

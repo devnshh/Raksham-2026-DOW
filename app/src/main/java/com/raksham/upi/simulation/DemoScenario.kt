@@ -2,7 +2,6 @@ package com.raksham.upi.simulation
 
 import com.raksham.risk.model.RiskTier
 import com.raksham.risk.session.SessionSignals
-import com.raksham.upi.ui.components.TrustedContactStatus
 
 enum class ScriptedUserAction {
     NONE,
@@ -35,7 +34,6 @@ data class DemoScenario(
     val signals: SessionSignals,
     val expectedTier: RiskTier,
     val humanExpectedLabel: String,
-    val trustedContactBehavior: TrustedContactStatus = TrustedContactStatus.IDLE,
     val scriptedAction: ScriptedUserAction = ScriptedUserAction.NONE
 )
 
@@ -83,7 +81,6 @@ object ScenarioCatalog {
             ),
             expectedTier = RiskTier.RED,
             humanExpectedLabel = "Pause shown",
-            trustedContactBehavior = TrustedContactStatus.DECLINED,
             scriptedAction = ScriptedUserAction.HANG_UP_AND_CANCEL
         ),
         DemoScenario(

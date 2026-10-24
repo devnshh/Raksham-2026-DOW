@@ -463,14 +463,7 @@ fun RedSmartPauseDialog(
                     contactFirstName = "Aarav",
                     payeeName = payeeVpa,
                     amount = amount,
-                    onDismiss = { showTrustedContactSheet = false },
-                    onDeclined = {
-                        showTrustedContactSheet = false
-                        onHangUpAndCancel()
-                    },
-                    onApproved = {
-                        showTrustedContactSheet = false
-                    }
+                    onDismiss = { showTrustedContactSheet = false }
                 )
             }
 
