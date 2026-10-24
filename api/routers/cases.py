@@ -30,6 +30,10 @@ def list_cases(
             reasons = json.loads(r["reasons"] or "[]")
         except Exception:
             reasons = []
+        try:
+            completed = bool(json.loads(r["evidence_pack"] or "{}").get("completed"))
+        except Exception:
+            completed = False
 
         results.append(
             CaseResponse(
@@ -41,7 +45,8 @@ def list_cases(
                 reasons=reasons,
                 template_id=r["template_id"],
                 hold_minutes=int(r["hold_minutes"]),
-                created_at=r["created_at"]
+                created_at=r["created_at"],
+                status="completed" if completed else "open"
             )
         )
 
@@ -79,6 +84,7 @@ def get_case_evidence(
         template_id=row["template_id"],
         hold_minutes=int(row["hold_minutes"]),
         created_at=row["created_at"],
+        status="completed" if evidence_pack.get("completed") else "open",
         evidence_pack=evidence_pack
     )
 

@@ -410,7 +410,7 @@ class SQLiteFeatureStore(BaseFeatureStore):
                 cursor.execute(
                     """
                     SELECT case_id, user_id, payee_vpa, amount, tier, reasons,
-                           template_id, hold_minutes, created_at
+                           template_id, hold_minutes, created_at, evidence_pack
                     FROM cases
                     WHERE tier = ?
                     ORDER BY created_at DESC
@@ -422,7 +422,7 @@ class SQLiteFeatureStore(BaseFeatureStore):
                 cursor.execute(
                     """
                     SELECT case_id, user_id, payee_vpa, amount, tier, reasons,
-                           template_id, hold_minutes, created_at
+                           template_id, hold_minutes, created_at, evidence_pack
                     FROM cases
                     ORDER BY created_at DESC
                     LIMIT ? OFFSET ?;
@@ -537,6 +537,69 @@ class SQLiteFeatureStore(BaseFeatureStore):
                 )
 
             return len(confirmations_list), is_confirmed
+
+    def clear_payee(self, payee_vpa: str) -> List[str]:
+        """Analyst clear: withdraws every confirmation so payments are no longer declined. User reports
+        stay on record. Returns the confirmations that were withdrawn."""
+        clean_payee = payee_vpa.strip().lower()
+        with get_db(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT confirmations FROM payees WHERE vpa = ?;", (clean_payee,))
+            row = cursor.fetchone()
+            if not row:
+                return []
+            cursor.execute(
+                "UPDATE payees SET confirmations = '[]', is_confirmed_scam = 0, updated_at = ? WHERE vpa = ?;",
+                (datetime.now(timezone.utc).isoformat(), clean_payee)
+            )
+            try:
+                return json.loads(row["confirmations"] or "[]")
+            except Exception:
+                return []
+
+    def payee_overview(self, payee_vpa: str, case_limit: int = 20) -> Dict[str, Any]:
+        """Read-only analyst view of a payee: the 24 h fan-in cluster (each distinct payer whose first
+        completed payment was in the last 24 h), reports, confirmations and recent cases."""
+        clean_payee = payee_vpa.strip().lower()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+        with get_db(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT display_name, confirmations, is_confirmed_scam FROM payees WHERE vpa = ?;",
+                           (clean_payee,))
+            row = cursor.fetchone()
+            cursor.execute(
+                """
+                SELECT payer_id, MIN(created_at) AS first_payment, COUNT(*) AS payments, SUM(amount) AS total
+                FROM payments WHERE payee_vpa = ?
+                GROUP BY payer_id HAVING first_payment >= ?
+                ORDER BY first_payment;
+                """,
+                (clean_payee, cutoff)
+            )
+            payers = [dict(r) for r in cursor.fetchall()]
+            reports = self._report_total(cursor, clean_payee)
+            cursor.execute(
+                """
+                SELECT case_id, user_id, amount, tier, reasons, created_at FROM cases
+                WHERE payee_vpa = ? ORDER BY created_at DESC LIMIT ?;
+                """,
+                (clean_payee, case_limit)
+            )
+            cases = [dict(r) for r in cursor.fetchall()]
+        try:
+            confirmations = json.loads(row["confirmations"] or "[]") if row else []
+        except Exception:
+            confirmations = []
+        return {
+            "payee_vpa": clean_payee,
+            "known": row is not None,
+            "display_name": row["display_name"] if row else None,
+            "is_confirmed_scam": bool(row["is_confirmed_scam"]) if row else False,
+            "confirmations": confirmations,
+            "reports": reports,
+            "new_payers_24h": payers,
+            "recent_cases": [{**c, "reasons": json.loads(c["reasons"] or "[]")} for c in cases],
+        }
 
     def record_payment(
         self,

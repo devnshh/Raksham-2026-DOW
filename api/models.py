@@ -112,6 +112,7 @@ class CaseResponse(BaseModel):
     template_id: str
     hold_minutes: int
     created_at: str
+    status: str = "open"  # "open", or "completed" once the app reported the payment done
     evidence_pack: Optional[dict[str, Any]] = None
 
 
