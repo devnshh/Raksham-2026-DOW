@@ -1,5 +1,10 @@
 package com.raksham.upi.ui.screens
 
+import kotlin.math.sin
+import kotlin.math.PI
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -183,18 +188,21 @@ fun ScanQrScreen(
 }
 
 /**
- * Tonal square with four rounded corner brackets and a scan line sweeping down it. On detection the
- * line stops, the brackets close in and turn green, and a check pops in.
+ * Tonal square with four rounded corner brackets and a light beam sweeping down inside them. The beam
+ * always travels top to bottom, fades in and out at the ends, and has feathered sides, so it never
+ * shows a hard edge. On detection the beam fades, the brackets close in and turn green, and a check
+ * pops in.
  */
 @Composable
 private fun Viewfinder(detected: Boolean) {
     val sweep = rememberInfiniteTransition(label = "sweep")
-    val linePos by sweep.animateFloat(
-        initialValue = 0.08f,
-        targetValue = 0.92f,
-        animationSpec = infiniteRepeatable(tween(1800, easing = Motion.Emphasized), RepeatMode.Reverse),
-        label = "line"
+    val progress by sweep.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(2400, easing = LinearEasing), RepeatMode.Restart),
+        label = "beam"
     )
+    val beamAlpha by animateFloatAsState(if (detected) 0f else 1f, tween(Motion.SHORT), label = "beam alpha")
     val bracketScale by animateFloatAsState(
         if (detected) 0.9f else 1f,
         spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
@@ -205,7 +213,7 @@ private fun Viewfinder(detected: Boolean) {
         tween(Motion.MEDIUM),
         label = "bracket colour"
     )
-    val lineColor = MaterialTheme.colorScheme.primary
+    val beamColor = MaterialTheme.colorScheme.primary
 
     Box(
         contentAlignment = Alignment.Center,
@@ -214,12 +222,45 @@ private fun Viewfinder(detected: Boolean) {
             .clip(RoundedCornerShape(32.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        Icon(
-            Icons.Outlined.QrCode2,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
-            modifier = Modifier.size(150.dp)
-        )
+        // Beam, drawn offscreen so a horizontal mask can feather both sides.
+        Canvas(
+            Modifier
+                .fillMaxSize()
+                .padding(40.dp)
+                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen, alpha = beamAlpha)
+        ) {
+            val w = size.width
+            val h = size.height
+            val eased = FastOutSlowInEasing.transform(progress)
+            val y = h * eased
+            val fade = sin(PI * progress).toFloat()
+            val trail = 72.dp.toPx()
+
+            drawRect(
+                Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    0.75f to beamColor.copy(alpha = 0.10f * fade),
+                    1f to beamColor.copy(alpha = 0.22f * fade),
+                    startY = y - trail,
+                    endY = y
+                ),
+                topLeft = Offset(0f, y - trail),
+                size = Size(w, trail)
+            )
+            drawLine(beamColor.copy(alpha = 0.25f * fade), Offset(0f, y), Offset(w, y), strokeWidth = 7.dp.toPx(), cap = StrokeCap.Round)
+            drawLine(beamColor.copy(alpha = fade), Offset(0f, y), Offset(w, y), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+            // Feather the left and right edges.
+            drawRect(
+                Brush.horizontalGradient(
+                    0f to Color.Transparent,
+                    0.18f to Color.Black,
+                    0.82f to Color.Black,
+                    1f to Color.Transparent
+                ),
+                blendMode = BlendMode.DstIn
+            )
+        }
+
         Canvas(Modifier.fillMaxSize().padding(28.dp).scale(bracketScale)) {
             val arm = size.minDimension * 0.2f
             val r = 18.dp.toPx()
@@ -233,24 +274,8 @@ private fun Viewfinder(detected: Boolean) {
                 Path().apply { moveTo(w, h - arm); lineTo(w, h - r); quadraticBezierTo(w, h, w - r, h); lineTo(w - arm, h) },
                 Path().apply { moveTo(arm, h); lineTo(r, h); quadraticBezierTo(0f, h, 0f, h - r); lineTo(0f, h - arm) }
             ).forEach { drawPath(it, bracketColor, style = stroke) }
-
-            if (!detected) {
-                val y = h * linePos
-                // A soft glow trailing the line, then the line itself.
-                drawRect(
-                    Brush.verticalGradient(listOf(Color.Transparent, lineColor.copy(alpha = 0.14f)), startY = y - 56.dp.toPx(), endY = y),
-                    topLeft = Offset(8.dp.toPx(), y - 56.dp.toPx()),
-                    size = Size(w - 16.dp.toPx(), 56.dp.toPx())
-                )
-                drawLine(
-                    Brush.horizontalGradient(listOf(Color.Transparent, lineColor, Color.Transparent)),
-                    start = Offset(8.dp.toPx(), y),
-                    end = Offset(w - 8.dp.toPx(), y),
-                    strokeWidth = 2.5.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            }
         }
+
         AnimatedVisibility(
             visible = detected,
             enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + fadeIn()
