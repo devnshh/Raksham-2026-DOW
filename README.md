@@ -76,6 +76,7 @@ ANDROID_HOME=~/Library/Android/sdk JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexe
 - **Money tab:** transaction history. **You tab:** profile, bank accounts and, in debug builds, the **Simulation Lab** (scripted scenarios scored against the API, and the API address).
 - Satark stays invisible on normal payments. It appears only as the amber warning, the red pause or the decline screen, in English and Hindi.
 - **Ask my trusted contact** (on the red pause) opens the phone's SMS app or WhatsApp with the question already written; the user picks the contact and the reply arrives there. The pause keeps counting down meanwhile.
+- **Appeals:** the amber warning offers "This was me, I know this payee": later ambers for that payee are not shown (never during a call or remote session, and not after the payee is reported again). The red pause and the decline screen offer only "Report a false alarm", which sends the case to the analyst console and changes nothing until an analyst clicks **Accept appeal**.
 
 ## Before every demo
 
