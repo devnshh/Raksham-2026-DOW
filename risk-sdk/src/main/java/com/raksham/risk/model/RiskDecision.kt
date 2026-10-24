@@ -9,7 +9,9 @@ data class RiskDecision(
     val isCheckUnavailable: Boolean = false,
     /** A call, screen share or remote-access app was active: "This was me" is not offered (or accepted). */
     val sessionUnderPressure: Boolean = false,
-    /** Everything worrying about this payment, in the user's voice, for the trusted-contact message:
-     *  who the user is on a call with, screen sharing, remote access, then every reason found. */
-    val factsForTrustedContact: List<PlainReason> = emptyList()
+    /** For the trusted-contact message, in the user's voice: who the user is on a call with, screen
+     *  sharing, remote access. */
+    val factsForTrustedContact: List<PlainReason> = emptyList(),
+    /** For the same message: every other reason, as the app showed it to the user (addressed to "you"). */
+    val appWarningsForTrustedContact: List<PlainReason> = emptyList()
 )

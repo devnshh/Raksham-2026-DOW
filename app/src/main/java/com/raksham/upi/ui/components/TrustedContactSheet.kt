@@ -45,6 +45,7 @@ fun TrustedContactSheet(
     payeeVpa: String,
     amount: Double,
     facts: List<PlainReason>,
+    appWarnings: List<PlainReason>,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -60,12 +61,16 @@ fun TrustedContactSheet(
         append("$contactFirstName, my bank app has paused a payment as a likely scam. Please check before I pay:\n")
         append("- ₹$formattedAmount to $payee\n")
         facts.forEach { append("- ${it.en}\n") }
+        if (appWarnings.isNotEmpty()) append("The app warned me:\n")
+        appWarnings.forEach { append("- \"${it.en}\"\n") }
         append("Is this safe? Please call me back on my own number.")
     }
     val messageHi = buildString {
         append("$contactFirstName, मेरे बैंक ऐप ने इस भुगतान को धोखाधड़ी की आशंका से रोका है। भुगतान से पहले कृपया जांचें:\n")
         append("- ₹$formattedAmount, $payee को\n")
         facts.forEach { append("- ${it.hi}\n") }
+        if (appWarnings.isNotEmpty()) append("ऐप ने मुझे यह चेतावनी दी:\n")
+        appWarnings.forEach { append("- \"${it.hi}\"\n") }
         append("क्या यह सुरक्षित है? कृपया मुझे मेरे अपने नंबर पर वापस कॉल करें।")
     }
 

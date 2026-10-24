@@ -74,8 +74,9 @@ object RiskGate {
             isCheckUnavailable = isUnavailable,
             sessionUnderPressure = signals.on_call || signals.screen_shared ||
                 signals.remote_app_present || signals.remote_app_new,
-            factsForTrustedContact = sessionFacts(signals) +
-                response.reasons.filter { it.uppercase() !in SESSION_CODES }.map { ReasonMapper.mapCodeToPlainReason(it, payment) }
+            factsForTrustedContact = sessionFacts(signals),
+            appWarningsForTrustedContact = response.reasons.filter { it.uppercase() !in SESSION_CODES }
+                .map { ReasonMapper.mapCodeToPlainReason(it, payment) }
         )
     }
 
@@ -85,9 +86,9 @@ object RiskGate {
     internal fun sessionFacts(s: SessionSignals): List<PlainReason> = buildList {
         if (s.on_call) add(
             when (s.caller_in_contacts) {
-                true -> PlainReason("I am on a call with a saved contact", "मैं एक सेव किए गए संपर्क से फोन पर बात कर रहा हूँ")
-                false -> PlainReason("I am on a call with someone who is not in my contacts", "मैं किसी ऐसे व्यक्ति से फोन पर बात कर रहा हूँ जो मेरे संपर्कों में नहीं है")
-                null -> PlainReason("I am on a call", "मैं फोन पर बात कर रहा हूँ")
+                true -> PlainReason("I am on a call with a saved contact", "मेरी एक सेव किए गए संपर्क से कॉल चल रही है")
+                false -> PlainReason("I am on a call with someone who is not in my contacts", "मेरी ऐसे व्यक्ति से कॉल चल रही है जो मेरे संपर्कों में नहीं है")
+                null -> PlainReason("I am on a call", "मेरी एक कॉल चल रही है")
             }
         )
         if (s.screen_shared) add(PlainReason("My screen is being shared", "मेरी स्क्रीन शेयर हो रही है"))

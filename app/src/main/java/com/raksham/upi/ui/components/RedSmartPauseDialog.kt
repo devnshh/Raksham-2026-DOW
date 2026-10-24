@@ -480,6 +480,7 @@ fun RedSmartPauseDialog(
                     payeeVpa = payeeVpa,
                     amount = amount,
                     facts = decision.factsForTrustedContact,
+                    appWarnings = decision.appWarningsForTrustedContact,
                     onDismiss = { showTrustedContactSheet = false }
                 )
             }
