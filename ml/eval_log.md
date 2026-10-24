@@ -67,3 +67,13 @@ Unseen scam types (model only, retrained without that scenario, warning cut-off 
 ## After run 2: what the caller signal adds (validation, seed 33)
 
 Same model and policy, with `caller_in_contacts` blanked so every call looks like an unknown caller: 5.22 warnings per 1,000 instead of 5.02, recall 139 of 144 either way. Almost all of the improvement from run 1 to run 2 comes from the policy change (no two-family amber, no weekly cap); the caller check removes a further 0.2 warnings per 1,000 in this simulation. The robustness run (seed 101) agrees: halving or doubling the saved-contact shares moves warnings between 4.7 and 4.9 per 1,000.
+
+## Between run 2 and run 3: what changed and why
+
+Written before run 3. Chosen on validation worlds (seeds 33, 44, 55), never the holdout.
+
+- **Where it came from.** A demo test, not the holdout: paying Rs 50,000 to an unknown typed number was green. The model scored it 0.80 against the 0.856 amber cut-off; in the simulator, large first payments to people are mostly genuine (emergencies, second-hand purchases, new-landlord deposits), and the model learned that.
+- **Rule added:** amber for a first payment of at least Rs 25,000 to a payee who is neither a saved contact (entry channel `contact`) nor a verified merchant (`stranger_amount_floor` in `policy.yaml`). Floors compared on validation before choosing: 10x usual and Rs 10,000 added about 2 warnings per 1,000; 20x and Rs 20,000 about 0.7; Rs 25,000 at any ratio about 0.4 to 0.5.
+- **Validation, model plus policy, warning level, before and after:** seed 33 recall 96.5% both, 5.02 to 5.49 warnings per 1,000, precision 6.3% to 5.8%; seed 44 recall 95.0% both, 5.03 to 5.40; seed 55 recall 93.5% to 94.2% (one more scam), 5.14 to 5.63.
+- **Also fixed, no effect on this replay:** the app's "Pay anyone" flow sent entry channel `phone_number`, which the model never saw; it now sends `typed_vpa` or `contact`, and the server maps unknown channels to `typed_vpa`.
+- Run 3 is reported whatever it shows.
