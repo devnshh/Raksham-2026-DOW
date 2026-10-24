@@ -58,7 +58,7 @@ def seed_data(db_path: str = DB_PATH) -> None:
             ("amaz0n-refund-desk@okaxis", "Amazon Returns Resolution Desk", False, 4.0, 24, 6, "mule"),
             ("task-payout-secure@paytm", "Global VIP Task Payouts", False, 6.0, 32, 5, "mule"),
             ("ipo-allotment-vault@okhdfcbank", "Direct Allotment Depository", False, 3.0, 14, 3, "mule"),
-            ("electricity-rebate@oksbi", "Govt Power Rebate Officer", False, 1.5, 12, 1, "mule"),
+            ("electricity-rebate@oksbi", "Govt Power Rebate Officer", False, 1.5, 12, 3, "mule"),  # demo data: 3 reports keeps this journey red with the ml/train.py model
             ("confirmed-scam-mule@ybl", "National Clearance Vault", False, 0.5, 45, 12, "mule"),
         ]
 

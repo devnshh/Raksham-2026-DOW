@@ -81,7 +81,7 @@ Seeded journeys that work end to end (checked against a freshly reset database):
 | Journey | In the app | Result |
 |---|---|---|
 | Friend | Home → Rahul → ₹450 | Green: no warning, PIN, receipt |
-| Fake CBI notice | Scan any QR code → CBI Cyber Cell Notice → Pay | Red pause: reported payee, unusual amount, many new payers |
+| Fake CBI notice | Scan any QR code → CBI Cyber Cell Notice → Pay | Red pause: reported payee, unusual amount, many new payers (amber between 13:00 and 15:59, see below) |
 | KYC helpdesk | Bank transfer → `kyc-helpdesk-update@ybl` → ₹48,000 | Red pause |
 | Mule account | Bank transfer → `mule.fastcash@okaxis` → ₹25,000 | Red pause |
 | WhatsApp rebate QR | Scan any QR code → Electricity Rebate (or Upload from gallery) | Red pause |
@@ -89,6 +89,8 @@ Seeded journeys that work end to end (checked against a freshly reset database):
 | Unusual amount on a call | Home → Vikram → ₹25,000 during a live phone call | Amber warning (green without a call) |
 
 A brand-new handle typed live gets a warning, not a red pause: red needs corroborating evidence about the payee.
+
+The model looks at the hour of day. The demo user often pays between 13:00 and 15:59, so at those hours the fake CBI notice scores just under the red cut-off and shows the amber warning instead. Demo-data change for the retrained model (`ml/train.py`): the seeded `electricity-rebate@oksbi` payee now has 3 prior reports instead of 1, which keeps that journey red at every hour.
 
 ## Tests
 
