@@ -60,7 +60,7 @@ Checked on a POCO M7 Plus 5G (Android 16). Notes for real phones:
 - **Xiaomi, Redmi and POCO:** turn on "Install via USB" in Developer options, or the install fails with `INSTALL_FAILED_USER_RESTRICTED`, and tap Install on the phone when it asks.
 - **Check the tunnel** by opening `http://127.0.0.1:8000/health` in the phone's browser. If the browser loads it but the app shows "Safety check unavailable", run `adb logcat -s RiskGate` to see why the app could not connect.
 - **Wi-Fi instead of USB** only works on a network that lets devices reach each other; office and venue Wi-Fi often blocks that. A phone hotspot with the laptop joined to it should work (not tested here); set the laptop's address in the Simulation Lab.
-- **Live call:** answer a real call, then pay. The phone reports the call (`ON_CALL`): Vikram ₹25,000 turns from green to amber, and payments that are already red get `ON_CALL` added to their reasons. A call alone does not make a payment red.
+- **Live call:** answer a real call, then pay. The phone reports the call (`ON_CALL`) and, for an incoming call with the caller check allowed, whether the caller is a contact saved at least 7 days ago. A call is one input to the model, not a warning on its own: payments that warn for other reasons get `ON_CALL` added to their reasons, and paying Vikram ₹25,000 stays green at most hours, with or without a call.
 
 From a terminal, Gradle needs JDK 17 and the Android SDK, for example:
 
