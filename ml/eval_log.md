@@ -31,3 +31,14 @@ False alarms (18,756 legit payments warned, 42.1 per 1,000; the model alone warn
 Fairness (warning false-alarm rate, model plus policy): every age band, language, phone tier and screen-reader group is between 4.07% and 4.30%, within 1.03 times the overall rate.
 
 Unseen scam types (model only, retrained without that scenario, warning cut-off from the validation world): digital arrest 1.00, customer care 0.65, KYC link 0.71, task scam 0.65, investment 0.91, fake QR 0.67, OTP takeover 1.00.
+
+## Between run 1 and run 2: what changed and why
+
+Written before run 2. Every choice below was made from validation worlds (seeds 33, 44, 55), never the holdout.
+
+- **Where the problem was found.** Before run 1, the validation run (seed 33) already showed 41 warnings per 1,000 payments with the policy against 1.0 for the model alone. Run 1 showed the same on the holdout. A breakdown on seed 33 then showed that 125 of the 127 scam payments warned were warned by the model; the "two families means amber" rule warned on about 15,900 genuine payments and caught 1 scam the model missed.
+- **New signal: is the caller a saved contact.** Added to the simulator as `caller_in_contacts`, with assumed rates in the generator card (85% of legit on-call payments, fewer for new landlords, sellers and hospitals, 5% for scam callers, 30% for long task and investment cons). Drawn from its own random stream: every existing column of every world is unchanged (checked by hash). On the phone it is measured for incoming calls, counting only contacts saved at least 7 days ago.
+- **Policy.** Amber now needs the model's amber threshold or screen sharing / a new remote-access app; two families alone no longer warn. A call with a saved contact adds little to the session family. The weekly warning cap is removed: with the two-family rule gone it only hid model warnings on the later payments of multi-step scams. Red is unchanged (model's red threshold and two families).
+- **Model.** Retrained on seed 11 with the same hyperparameters; thresholds set on seed 33 at the same alert budgets (amber 0.856, red 0.996).
+- **Validation, model plus policy, warning level:** seed 33 recall 96.5%, 5.0 warnings per 1,000, precision 6.3% (was 88.2%, 41.3, 0.7%); seed 44 95.0%, 5.0, 6.1%; seed 55 93.5%, 5.1, 5.8%. These are optimistic: thresholds were set on seed 33.
+- **What run 2 can and cannot show.** The new signal's effect rests on the assumed rates above; the robustness run varies them. Run 2 is reported whatever it shows.

@@ -23,7 +23,7 @@ The backend service is built with **Python 3.10+**, **FastAPI**, **Pydantic v2**
 │  - Analyst API key on /v1/cases, /v1/payees, /internal │
 │    (no rate limiting yet)                              │
 │  - Feature Builder & Feature Store (SQLite WAL)        │
-│  - Policy Engine (Corroboration, Amber Cap, Gate)      │
+│  - Policy Engine (Gate, Tiering, Corroboration)        │
 │  - Append-Only Hash-Chained Audit Log                  │
 │  - ModelClient (HttpModelClient / LocalModelClient)    │
 └────────────────────────────────────────────────────────┘
@@ -53,7 +53,7 @@ pip install -r requirements.txt
 python scripts/reset_demo_db.py
 ```
 
-The database is local state and is not committed. It is created and seeded on first start; the reset script wipes and re-seeds it. Re-seed before a demo: seeded mule fan-in ages out after 24 hours, and earlier runs count towards the weekly amber cap.
+The database is local state and is not committed. It is created and seeded on first start; the reset script wipes and re-seeds it. Re-seed before a demo: seeded mule fan-in ages out after 24 hours, and earlier runs' payments, appeals and holds change later checks.
 
 ### Starting Both Services Together (Recommended)
 
@@ -344,15 +344,16 @@ The policy engine (`api/policy/engine.py`) is written in pure Python with zero f
    (Fails open with device-only checks if timeout > 300ms or error occurs)
            │
            ▼
-5. Corroboration Rule
-   ├── RED:   score >= 0.50 AND >= 2 independent families firing ──► RED (30-min hold)
-   ├── AMBER: score >= amber threshold, OR >= 2 families, OR screen share / new remote app ► Check Amber Cap
-   └── GREEN: score < 0.35 ───────────────────────────────────────► GREEN
+5. Tier
+   ├── RED:   score >= red threshold AND >= 2 independent families firing ──► RED (30-min hold)
+   ├── AMBER: score >= amber threshold, OR screen share / new remote app
+   │          (two families alone no longer warn: on validation that rule raised ~15,900 false alarms for 1 extra scam)
+   └── GREEN: otherwise
+   Family A counts a call at full weight only when the caller is not a contact saved 7+ days ago.
            │
            ▼
-6. Per-User Amber Cap
-   (Max 1 WEAK amber per user per 7 days: a single-family amber without screen share or a new remote app.
-    Corroborated ambers (2+ families) are never silenced. RED is NEVER downgraded)
+6. Vouched-for payee ("This was me" on amber, or an analyst-accepted appeal) can lower later warnings
+   (never during a call or remote session; there is no weekly warning cap any more)
            │
            ▼
 7. Red-Tier Questionnaire
