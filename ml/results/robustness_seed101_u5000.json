@@ -2,8 +2,8 @@
   "seed": 101,
   "users": 5000,
   "thresholds": {
-    "amber": 0.8585662245750427,
-    "red": 0.9973271489143372
+    "amber": 0.856097400188446,
+    "red": 0.9963828921318054
   },
   "note": "Same seed for every variant, one rate changed at a time; deployed model and thresholds, not re-tuned. Changing a rate also shifts the simulator's later random draws, so part of each difference is chance. Simulation results, not real-world accuracy.",
   "runs": {
@@ -13,29 +13,157 @@
       "model_only": {
         "warning": {
           "recall": 0.9848484848484849,
-          "precision": 0.29213483146067415,
-          "alerts_per_1000": 1.0243896824391983,
-          "false_positive_rate": 0.000725350182949435
+          "precision": 0.2988505747126437,
+          "alerts_per_1000": 1.001369689575396,
+          "false_positive_rate": 0.0007023231930145323
         },
         "red": {
-          "recall": 0.8409090909090909,
-          "precision": 0.9487179487179487,
+          "recall": 0.8181818181818182,
+          "precision": 0.9230769230769231,
           "alerts_per_1000": 0.2693339165064859,
+          "false_positive_rate": 2.0724290941412428e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.06226053639846743,
+          "alerts_per_1000": 4.8065745099619015,
+          "false_positive_rate": 0.004508684629253948
+        },
+        "red": {
+          "recall": 0.6893939393939394,
+          "precision": 0.9578947368421052,
+          "alerts_per_1000": 0.218689932206121,
+          "false_positive_rate": 9.21079597396108e-06
+        }
+      }
+    },
+    "genuine callers who are saved contacts: half": {
+      "payments": 434405,
+      "scam_payments": 132,
+      "model_only": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.2748414376321353,
+          "alerts_per_1000": 1.0888456624578446,
+          "false_positive_rate": 0.0007898257547671626
+        },
+        "red": {
+          "recall": 0.8181818181818182,
+          "precision": 0.9152542372881356,
+          "alerts_per_1000": 0.2716359157928661,
+          "false_positive_rate": 2.30269899349027e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.06114769520225776,
+          "alerts_per_1000": 4.89405048284435,
+          "false_positive_rate": 0.0045961871910065785
+        },
+        "red": {
+          "recall": 0.6893939393939394,
+          "precision": 0.9479166666666666,
+          "alerts_per_1000": 0.22099193149250124,
+          "false_positive_rate": 1.151349496745135e-05
+        }
+      }
+    },
+    "genuine callers who are saved contacts: double": {
+      "payments": 434405,
+      "scam_payments": 132,
+      "model_only": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.325,
+          "alerts_per_1000": 0.9207997145520885,
+          "false_positive_rate": 0.0006217287282423729
+        },
+        "red": {
+          "recall": 0.8181818181818182,
+          "precision": 0.9473684210526315,
+          "alerts_per_1000": 0.2624279186473452,
           "false_positive_rate": 1.381619396094162e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.9242424242424242,
-          "precision": 0.006842784227943238,
-          "alerts_per_1000": 41.042345276872965,
-          "false_positive_rate": 0.04077389107773221
+          "recall": 0.9848484848484849,
+          "precision": 0.06332196785192401,
+          "alerts_per_1000": 4.726004534938594,
+          "false_positive_rate": 0.004428090164481789
         },
         "red": {
-          "recall": 0.7045454545454546,
-          "precision": 0.96875,
-          "alerts_per_1000": 0.22099193149250124,
-          "false_positive_rate": 6.90809698047081e-06
+          "recall": 0.6893939393939394,
+          "precision": 0.9891304347826086,
+          "alerts_per_1000": 0.21178393434698034,
+          "false_positive_rate": 2.30269899349027e-06
+        }
+      }
+    },
+    "scam callers who are saved contacts: half": {
+      "payments": 434405,
+      "scam_payments": 132,
+      "model_only": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.2988505747126437,
+          "alerts_per_1000": 1.001369689575396,
+          "false_positive_rate": 0.0007023231930145323
+        },
+        "red": {
+          "recall": 0.8181818181818182,
+          "precision": 0.9230769230769231,
+          "alerts_per_1000": 0.2693339165064859,
+          "false_positive_rate": 2.0724290941412428e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.06226053639846743,
+          "alerts_per_1000": 4.8065745099619015,
+          "false_positive_rate": 0.004508684629253948
+        },
+        "red": {
+          "recall": 0.6893939393939394,
+          "precision": 0.9578947368421052,
+          "alerts_per_1000": 0.218689932206121,
+          "false_positive_rate": 9.21079597396108e-06
+        }
+      }
+    },
+    "scam callers who are saved contacts: double": {
+      "payments": 434405,
+      "scam_payments": 132,
+      "model_only": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.2988505747126437,
+          "alerts_per_1000": 1.001369689575396,
+          "false_positive_rate": 0.0007023231930145323
+        },
+        "red": {
+          "recall": 0.8106060606060606,
+          "precision": 0.9224137931034483,
+          "alerts_per_1000": 0.26703191722010566,
+          "false_positive_rate": 2.0724290941412428e-05
+        }
+      },
+      "model_plus_policy": {
+        "warning": {
+          "recall": 0.9848484848484849,
+          "precision": 0.06226053639846743,
+          "alerts_per_1000": 4.8065745099619015,
+          "false_positive_rate": 0.004508684629253948
+        },
+        "red": {
+          "recall": 0.6818181818181818,
+          "precision": 0.9574468085106383,
+          "alerts_per_1000": 0.2163879329197408,
+          "false_positive_rate": 9.21079597396108e-06
         }
       }
     },
@@ -44,29 +172,29 @@
       "scam_payments": 151,
       "model_only": {
         "warning": {
-          "recall": 0.9602649006622517,
-          "precision": 0.3159041394335512,
-          "alerts_per_1000": 1.039068053298079,
-          "false_positive_rate": 0.0007110652164559513
+          "recall": 0.9735099337748344,
+          "precision": 0.3181818181818182,
+          "alerts_per_1000": 1.0458593477640796,
+          "false_positive_rate": 0.000713329755361862
         },
         "red": {
-          "recall": 0.7549668874172185,
-          "precision": 0.9743589743589743,
-          "alerts_per_1000": 0.26486048417402014,
-          "false_positive_rate": 6.793616717732019e-06
+          "recall": 0.7947019867549668,
+          "precision": 0.96,
+          "alerts_per_1000": 0.2829706027500215,
+          "false_positive_rate": 1.1322694529553365e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.8675496688741722,
-          "precision": 0.010821974390747625,
-          "alerts_per_1000": 27.40287317031208,
-          "false_positive_rate": 0.027115588859374398
+          "recall": 0.9735099337748344,
+          "precision": 0.06780442804428044,
+          "alerts_per_1000": 4.907842134096373,
+          "false_positive_rate": 0.00457663312884547
         },
         "red": {
-          "recall": 0.6225165562913907,
-          "precision": 0.9791666666666666,
-          "alerts_per_1000": 0.21732142291201653,
+          "recall": 0.6490066225165563,
+          "precision": 0.98,
+          "alerts_per_1000": 0.2263764822000172,
           "false_positive_rate": 4.529077811821346e-06
         }
       }
@@ -76,30 +204,30 @@
       "scam_payments": 159,
       "model_only": {
         "warning": {
-          "recall": 0.9559748427672956,
-          "precision": 0.3318777292576419,
-          "alerts_per_1000": 1.049459803169002,
-          "false_positive_rate": 0.0007014230176776938
+          "recall": 0.9622641509433962,
+          "precision": 0.32762312633832974,
+          "alerts_per_1000": 1.070082375720358,
+          "false_positive_rate": 0.0007197608743490061
         },
         "red": {
           "recall": 0.8176100628930818,
-          "precision": 0.9420289855072463,
-          "alerts_per_1000": 0.316212779120791,
-          "false_positive_rate": 1.8337856671312258e-05
+          "precision": 0.9285714285714286,
+          "alerts_per_1000": 0.3207955730210923,
+          "false_positive_rate": 2.2922320839140322e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.8742138364779874,
-          "precision": 0.004663803516306536,
-          "alerts_per_1000": 68.29279470229025,
-          "false_positive_rate": 0.06799906476930977
+          "recall": 0.9622641509433962,
+          "precision": 0.06734154929577464,
+          "alerts_per_1000": 5.2060538707422985,
+          "false_positive_rate": 0.004857239785813834
         },
         "red": {
-          "recall": 0.7295597484276729,
-          "precision": 0.9747899159663865,
-          "alerts_per_1000": 0.27267623706792843,
-          "false_positive_rate": 6.876696251742096e-06
+          "recall": 0.7044025157232704,
+          "precision": 0.9824561403508771,
+          "alerts_per_1000": 0.2612192523171752,
+          "false_positive_rate": 4.5844641678280645e-06
         }
       }
     },
@@ -108,30 +236,30 @@
       "scam_payments": 135,
       "model_only": {
         "warning": {
-          "recall": 0.9851851851851852,
-          "precision": 0.2982062780269058,
-          "alerts_per_1000": 1.0266845914439882,
-          "false_positive_rate": 0.0007207447849624545
+          "recall": 0.9925925925925926,
+          "precision": 0.3101851851851852,
+          "alerts_per_1000": 0.9944568239995579,
+          "false_positive_rate": 0.0006862043000601004
         },
         "red": {
-          "recall": 0.8074074074074075,
-          "precision": 0.9478260869565217,
-          "alerts_per_1000": 0.2647280897221046,
-          "false_positive_rate": 1.381619396094162e-05
+          "recall": 0.8222222222222222,
+          "precision": 0.925,
+          "alerts_per_1000": 0.27623800666654386,
+          "false_positive_rate": 2.0724290941412428e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.9259259259259259,
-          "precision": 0.007024839833651793,
-          "alerts_per_1000": 40.96149242187069,
-          "false_positive_rate": 0.04068638851597958
+          "recall": 0.9925925925925926,
+          "precision": 0.0643302928468555,
+          "alerts_per_1000": 4.795031399053425,
+          "false_positive_rate": 0.004487960338312536
         },
         "red": {
-          "recall": 0.7555555555555555,
-          "precision": 0.9714285714285714,
-          "alerts_per_1000": 0.2417082558332259,
-          "false_positive_rate": 6.90809698047081e-06
+          "recall": 0.762962962962963,
+          "precision": 0.9626168224299065,
+          "alerts_per_1000": 0.24631222261100164,
+          "false_positive_rate": 9.21079597396108e-06
         }
       }
     },
@@ -140,30 +268,30 @@
       "scam_payments": 135,
       "model_only": {
         "warning": {
-          "recall": 0.9111111111111111,
-          "precision": 0.28018223234624146,
-          "alerts_per_1000": 1.010570707721773,
-          "false_positive_rate": 0.0007276528819429253
+          "recall": 0.9185185185185185,
+          "precision": 0.28054298642533937,
+          "alerts_per_1000": 1.0174766578884367,
+          "false_positive_rate": 0.0007322582799299058
         },
         "red": {
-          "recall": 0.7481481481481481,
-          "precision": 0.9528301886792453,
-          "alerts_per_1000": 0.24401023922211376,
-          "false_positive_rate": 1.151349496745135e-05
+          "recall": 0.762962962962963,
+          "precision": 0.911504424778761,
+          "alerts_per_1000": 0.26012412294432885,
+          "false_positive_rate": 2.30269899349027e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.8518518518518519,
-          "precision": 0.006454509737890779,
-          "alerts_per_1000": 41.014438039815104,
-          "false_positive_rate": 0.040762377582764756
+          "recall": 0.9185185185185185,
+          "precision": 0.05916030534351145,
+          "alerts_per_1000": 4.824957183108967,
+          "false_positive_rate": 0.004540922415162812
         },
         "red": {
           "recall": 0.6814814814814815,
-          "precision": 0.9787234042553191,
-          "alerts_per_1000": 0.2163864385554594,
-          "false_positive_rate": 4.60539798698054e-06
+          "precision": 0.9583333333333334,
+          "alerts_per_1000": 0.2209904053332351,
+          "false_positive_rate": 9.21079597396108e-06
         }
       }
     },
@@ -172,24 +300,24 @@
       "scam_payments": 132,
       "model_only": {
         "warning": {
-          "recall": 0.9772727272727273,
-          "precision": 0.289237668161435,
-          "alerts_per_1000": 1.0266916817255787,
-          "false_positive_rate": 0.0007299555809364155
+          "recall": 0.9696969696969697,
+          "precision": 0.28635346756152125,
+          "alerts_per_1000": 1.0289936810119589,
+          "false_positive_rate": 0.0007345609789233961
         },
         "red": {
-          "recall": 0.7575757575757576,
-          "precision": 0.9433962264150944,
-          "alerts_per_1000": 0.24401192435630345,
-          "false_positive_rate": 1.381619396094162e-05
+          "recall": 0.7727272727272727,
+          "precision": 0.9272727272727272,
+          "alerts_per_1000": 0.2532199215018243,
+          "false_positive_rate": 1.842159194792216e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.8712121212121212,
-          "precision": 0.0064465496944896014,
-          "alerts_per_1000": 41.065365269736766,
-          "false_positive_rate": 0.040813036960621545
+          "recall": 0.9696969696969697,
+          "precision": 0.06092336982389338,
+          "alerts_per_1000": 4.836500500684845,
+          "false_positive_rate": 0.004543225114156303
         },
         "red": {
           "recall": 0.6742424242424242,
@@ -204,29 +332,29 @@
       "scam_payments": 141,
       "model_only": {
         "warning": {
-          "recall": 0.950354609929078,
-          "precision": 0.3004484304932735,
-          "alerts_per_1000": 1.026670411174594,
-          "false_positive_rate": 0.0007184420859689642
+          "recall": 0.9716312056737588,
+          "precision": 0.31065759637188206,
+          "alerts_per_1000": 1.0151606532017845,
+          "false_positive_rate": 0.000700020494021042
         },
         "red": {
-          "recall": 0.7801418439716312,
-          "precision": 0.9322033898305084,
-          "alerts_per_1000": 0.27163028815830065,
-          "false_positive_rate": 1.842159194792216e-05
+          "recall": 0.8014184397163121,
+          "precision": 0.9186991869918699,
+          "alerts_per_1000": 0.28314004613111,
+          "false_positive_rate": 2.30269899349027e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.8865248226950354,
-          "precision": 0.0070311621104736195,
-          "alerts_per_1000": 40.924095448120916,
-          "false_positive_rate": 0.04064954533208374
+          "recall": 0.9787234042553191,
+          "precision": 0.06587112171837708,
+          "alerts_per_1000": 4.822588590607117,
+          "false_positive_rate": 0.004506381930260458
         },
         "red": {
-          "recall": 0.6737588652482269,
-          "precision": 0.9693877551020408,
-          "alerts_per_1000": 0.22559125626706322,
+          "recall": 0.6808510638297872,
+          "precision": 0.9696969696969697,
+          "alerts_per_1000": 0.2278932078616251,
           "false_positive_rate": 6.90809698047081e-06
         }
       }
@@ -237,29 +365,29 @@
       "model_only": {
         "warning": {
           "recall": 0.9848484848484849,
-          "precision": 0.29411764705882354,
-          "alerts_per_1000": 1.017483684580058,
-          "false_positive_rate": 0.0007184420859689642
+          "precision": 0.2995391705069124,
+          "alerts_per_1000": 0.999067690289016,
+          "false_positive_rate": 0.000700020494021042
         },
         "red": {
-          "recall": 0.7954545454545454,
-          "precision": 0.9459459459459459,
-          "alerts_per_1000": 0.25552192078820457,
-          "false_positive_rate": 1.381619396094162e-05
+          "recall": 0.7878787878787878,
+          "precision": 0.9203539823008849,
+          "alerts_per_1000": 0.260125919360965,
+          "false_positive_rate": 2.0724290941412428e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.8863636363636364,
-          "precision": 0.006567867969013136,
-          "alerts_per_1000": 41.007815287577266,
-          "false_positive_rate": 0.04075086408779731
+          "recall": 0.9848484848484849,
+          "precision": 0.06229036895064686,
+          "alerts_per_1000": 4.8042725106755215,
+          "false_positive_rate": 0.004506381930260458
         },
         "red": {
-          "recall": 0.6515151515151515,
-          "precision": 0.9662921348314607,
+          "recall": 0.6439393939393939,
+          "precision": 0.9550561797752809,
           "alerts_per_1000": 0.20487793648783967,
-          "false_positive_rate": 6.90809698047081e-06
+          "false_positive_rate": 9.21079597396108e-06
         }
       }
     },
@@ -269,29 +397,29 @@
       "model_only": {
         "warning": {
           "recall": 0.9772727272727273,
-          "precision": 0.2918552036199095,
-          "alerts_per_1000": 1.017483684580058,
-          "false_positive_rate": 0.0007207447849624545
+          "precision": 0.291196388261851,
+          "alerts_per_1000": 1.0197856838664379,
+          "false_positive_rate": 0.0007230474839559448
         },
         "red": {
-          "recall": 0.8106060606060606,
-          "precision": 0.9553571428571429,
-          "alerts_per_1000": 0.25782392007458477,
-          "false_positive_rate": 1.151349496745135e-05
+          "recall": 0.8181818181818182,
+          "precision": 0.9310344827586207,
+          "alerts_per_1000": 0.26703191722010566,
+          "false_positive_rate": 1.842159194792216e-05
         }
       },
       "model_plus_policy": {
         "warning": {
-          "recall": 0.9318181818181818,
-          "precision": 0.006918663516706041,
-          "alerts_per_1000": 40.92494331326757,
-          "false_positive_rate": 0.04065415073007072
+          "recall": 0.9772727272727273,
+          "precision": 0.06151645207439199,
+          "alerts_per_1000": 4.827292503539323,
+          "false_positive_rate": 0.004531711619188851
         },
         "red": {
-          "recall": 0.696969696969697,
-          "precision": 0.9787234042553191,
-          "alerts_per_1000": 0.2163879329197408,
-          "false_positive_rate": 4.60539798698054e-06
+          "recall": 0.7045454545454546,
+          "precision": 0.9587628865979382,
+          "alerts_per_1000": 0.22329393077888146,
+          "false_positive_rate": 9.21079597396108e-06
         }
       }
     }

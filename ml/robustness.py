@@ -30,8 +30,18 @@ def _on_call_mean(f):
     return (m * b / (1 - m), b)
 
 
+def _callers_saved(f, scam):
+    """Scales the saved-contact share of scam callers (scam=True) or of legit callers, capped at 1."""
+    rates = dict(satark_sim.P["caller_in_contacts"][0])
+    keys = ("scam", "task_scam", "investment", "fake_qr") if scam else ("legit", "new_individual", "new_tenancy",
+                                                                       "item_purchase", "emergency")
+    return {**rates, **{k: min(1.0, rates[k] * f) for k in keys}}
+
+
 # Rates the plan's assumption A6 names as most likely to be wrong, and how to scale each.
 KNOBS = {
+    "genuine callers who are saved contacts": ("caller_in_contacts", lambda f: _callers_saved(f, scam=False)),
+    "scam callers who are saved contacts": ("caller_in_contacts", lambda f: _callers_saved(f, scam=True)),
     "legit payments made on a call": ("legit_on_call", _on_call_mean),
     "scam journeys that use an evasion": ("evasive_share", lambda f: satark_sim.P["evasive_share"][0] * f),
     "victims who report the scam": ("report_prob", lambda f: min(1.0, satark_sim.P["report_prob"][0] * f)),

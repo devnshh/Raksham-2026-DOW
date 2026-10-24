@@ -63,3 +63,7 @@ False alarms (2,068 genuine payments warned, 0.46%):
 Fairness (warning false-alarm rate, model plus policy): every age band, language, phone tier and screen-reader group is between 0.44% and 0.49%.
 
 Unseen scam types (model only, retrained without that scenario, warning cut-off from the validation world): digital arrest 1.00, customer care 0.65, KYC link 0.71, task scam 0.65, investment 0.91, fake QR 0.60, OTP takeover 1.00.
+
+## After run 2: what the caller signal adds (validation, seed 33)
+
+Same model and policy, with `caller_in_contacts` blanked so every call looks like an unknown caller: 5.22 warnings per 1,000 instead of 5.02, recall 139 of 144 either way. Almost all of the improvement from run 1 to run 2 comes from the policy change (no two-family amber, no weekly cap); the caller check removes a further 0.2 warnings per 1,000 in this simulation. The robustness run (seed 101) agrees: halving or doubling the saved-contact shares moves warnings between 4.7 and 4.9 per 1,000.
