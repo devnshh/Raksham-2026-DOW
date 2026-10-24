@@ -18,3 +18,5 @@ venv/
 
 # Simulator worlds regenerate from their seeds
 sim/data/*.parquet
+ml/results/validation_*
+ml/results/fresh_*
