@@ -269,7 +269,7 @@ class PolicyEngine:
         3. Eligibility gate -> score only first-time or unusual amount; else GREEN silently
         4. Scorer invocation (with fail-open on timeout >300ms or error)
         5. Tier: RED needs score >= red_threshold and >=2 families; AMBER needs score >= amber
-           threshold or screen sharing / a new remote-access app
+           threshold, screen sharing / a new remote-access app, or a large first payment to a stranger
         6. Vouched-for payee can lower later warnings (never during a call or remote session)
         7. Red-tier questionnaire: can only raise risk, never lower RED tier
         """
@@ -520,7 +520,9 @@ class PolicyEngine:
             tier = "amber"
             hold_minutes = 0
             applied_rules.append("large_first_payment_to_stranger")
-            for code in ("AMOUNT_UNUSUAL", "NEW_PAYEE"):
+            # AMOUNT_UNUSUAL only when it is true for this user (same test as the scorer's reasons).
+            unusual = float(features.get("amount_ratio") or 0) >= 2 or float(features.get("amount_z") or 0) >= 2
+            for code in (["AMOUNT_UNUSUAL"] if unusual else []) + ["NEW_PAYEE"]:
                 if code not in reasons:
                     reasons.append(code)
         else:

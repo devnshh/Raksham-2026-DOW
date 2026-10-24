@@ -26,3 +26,13 @@ def test_not_for_contacts_small_amounts_or_verified_merchants(client: TestClient
 def test_unknown_entry_channel_is_scored_as_typed(client: TestClient):
     _, ev = _assess(client, "raksham@oksbi", "5959595959@oksbi", 300, "phone_number")
     assert ev["features"]["entry_channel"] == "typed_vpa"
+
+
+def test_amount_is_called_unusual_only_when_it_is(client: TestClient):
+    from api.policy.engine import PolicyEngine
+    from api.policy.scorer import get_satark_scorer
+    _, ev = _assess(client, "raksham@oksbi", "5454545454@oksbi", 50000, "typed_vpa")
+    usual = {**ev["features"], "amount_ratio": 1.0, "amount_z": 0.0, "amount_vs_max": 1.0}
+    d = PolicyEngine(scorer=get_satark_scorer()).evaluate(usual)
+    assert "large_first_payment_to_stranger" in d.applied_rules
+    assert "NEW_PAYEE" in d.reasons and "AMOUNT_UNUSUAL" not in d.reasons

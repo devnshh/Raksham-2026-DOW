@@ -209,3 +209,27 @@ def test_reporting_from_a_warning_cancels_that_case(client: TestClient):
     client.post("/v1/report", json={"reporter_id": "raksham@oksbi", "payee_vpa": "amaz0n-refund-desk@okaxis",
                                     "reason": "x", "case_id": other["case_id"]})
     assert client.get(f"/v1/cases/{other['case_id']}").json()["status"] == "open"
+
+
+def test_a_paid_case_is_not_cancelled_and_a_cancelled_case_cannot_be_paid(client: TestClient):
+    def assess(vpa):
+        return client.post("/v1/risk/assess", json={"user_ref": "raksham@oksbi", "payee_vpa": vpa, "amount": 300.0,
+                                                    "session": {"on_call": False}}).json()
+
+    def complete(case, vpa):
+        return client.post("/v1/payments/complete", json={"case_id": case["case_id"], "user_ref": "raksham@oksbi",
+                                                          "payee_vpa": vpa, "amount": 300.0})
+
+    def report(case, vpa):
+        return client.post("/v1/report", json={"reporter_id": "raksham@oksbi", "payee_vpa": vpa,
+                                               "reason": "x", "case_id": case["case_id"]})
+
+    paid = assess("paid-then-reported@okaxis")
+    assert complete(paid, "paid-then-reported@okaxis").status_code == 200
+    report(paid, "paid-then-reported@okaxis")
+    ev = client.get(f"/v1/cases/{paid['case_id']}").json()["evidence_pack"]
+    assert ev["completed"] and not ev.get("cancelled")
+
+    cancelled = assess("reported-then-paid@okaxis")
+    report(cancelled, "reported-then-paid@okaxis")
+    assert complete(cancelled, "reported-then-paid@okaxis").status_code == 409

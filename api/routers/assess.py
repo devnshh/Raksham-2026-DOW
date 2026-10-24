@@ -433,6 +433,8 @@ def complete_payment(
     evidence = json.loads(row["evidence_pack"] or "{}")
     if evidence.get("completed"):
         return PaymentCompleteResponse(status="already_recorded", case_id=req.case_id)
+    if evidence.get("cancelled"):
+        raise HTTPException(status_code=409, detail="This payment was cancelled when it was reported as a scam")
 
     user_id = row["user_id"]
     store.record_payment(payer_id=user_id, payee_vpa=row["payee_vpa"], amount=float(row["amount"]))

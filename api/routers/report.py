@@ -34,10 +34,14 @@ def report_scam_payee(
     )
 
     row = store.get_case(req.case_id) if req.case_id else None
+    evidence = json.loads(row["evidence_pack"] or "{}") if row else {}
+    # Only an open case is cancelled: a paid one stays paid, and a repeat report adds no audit row.
     if row and row["user_id"] == req.reporter_id.strip().lower() \
-            and row["payee_vpa"] == req.payee_vpa.strip().lower():
+            and row["payee_vpa"] == req.payee_vpa.strip().lower() \
+            and not evidence.get("completed") and not evidence.get("cancelled"):
+        # True, not the report id: a repeat report on the same payee is not stored again.
         store.update_case_decision(req.case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
-                                   int(row["hold_minutes"]), {"cancelled": True, "user_reported_scam": report_id})
+                                   int(row["hold_minutes"]), {"cancelled": True, "user_reported_scam": True})
         audit.append_log(case_id=req.case_id, user_id=row["user_id"], payee_vpa=row["payee_vpa"],
                          tier="user_reported_and_cancelled", reasons=["USER_REPORTED_SCAM"])
 
