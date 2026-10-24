@@ -88,10 +88,11 @@
 
   <section aria-labelledby="fresh-h">
     <h2 id="fresh-h">Score a fresh world</h2>
-    <p class="sub">Pick any seed nobody has used. The server generates a new world of synthetic users, runs the leak checks and scores every payment through the same path. Seeds 11, 22 and 33 are taken by the train, holdout and validation worlds.</p>
+    <p class="sub">Pick any seed nobody has used. The server generates a new world of synthetic users, runs the leak checks and scores every payment through the same path. It needs the analyst key the start script printed. Seeds 11, 22 and 33 are taken by the train, holdout and validation worlds.</p>
     <form class="fresh" id="fresh">
       <label>Seed<input id="seed" type="number" min="1" required></label>
       <label>Users<input id="users" type="number" min="100" max="1000" value="300"></label>
+      <label>Analyst key<input id="key" type="password" autocomplete="off" required></label>
       <button class="btn" type="submit" id="fresh-btn">Generate and score</button>
     </form>
     <p id="fresh-status" role="status"></p>
@@ -196,7 +197,10 @@ $("fresh").addEventListener("submit", async (e) => {
   status.textContent = `Generating ${users} users from seed ${seed} and scoring every payment. This takes about half a minute.`;
   const t0 = performance.now();
   try {
-    const r = await fetch("/v1/eval/fresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ seed, users }) });
+    const key = $("key").value.trim();
+    try { sessionStorage.setItem("satark.key", key); } catch {}
+    const r = await fetch("/v1/eval/fresh", { method: "POST", headers: { "Content-Type": "application/json", "X-API-Key": key }, body: JSON.stringify({ seed, users }) });
+    if (r.status === 401) throw new Error("that analyst key was not accepted");
     const res = await r.json();
     if (!r.ok) throw new Error(res.detail || r.status);
     status.textContent = `Seed ${seed}: ${num(res.payments, 0)} payments, ${res.scam_payments} scam payments in ${res.scam_journeys} journeys, ` +
@@ -207,6 +211,7 @@ $("fresh").addEventListener("submit", async (e) => {
   finally { $("fresh-btn").disabled = false; }
 });
 
+try { $("key").value = sessionStorage.getItem("satark.key") || ""; } catch {}  // same key as the console
 loadLatest();
 </script>
 </body>
