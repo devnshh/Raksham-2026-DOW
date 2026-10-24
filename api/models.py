@@ -113,6 +113,7 @@ class CaseResponse(BaseModel):
     hold_minutes: int
     created_at: str
     status: str = "open"  # "open", or "completed" once the app reported the payment done
+    dispute: Optional[str] = None  # "this_was_me", "false_alarm_pending" or "false_alarm_accepted"
     evidence_pack: Optional[dict[str, Any]] = None
 
 
@@ -135,6 +136,16 @@ class QuestionnaireRequest(BaseModel):
     """Answers to the red-tier check, attached to an existing case."""
     user_ref: str
     answers: dict[str, Any]
+
+
+class AppealRequest(BaseModel):
+    """The user disputes a warning on their own case."""
+    user_ref: str
+
+
+class AppealResponse(BaseModel):
+    case_id: str
+    status: str  # "payee_trusted" (amber, This was me) or "sent_for_review" (red or decline)
 
 
 class PaymentCompleteRequest(BaseModel):

@@ -13,6 +13,8 @@ from api.models import (
     RiskAssessmentRequest,
     RiskAssessmentResponse,
     QuestionnaireRequest,
+    AppealRequest,
+    AppealResponse,
     PaymentCompleteRequest,
     PaymentCompleteResponse,
 )
@@ -222,7 +224,8 @@ def assess_risk(
             is_confirmed_scam_payee=payee_profile["is_confirmed_scam"],
             user_amber_count_7d=user_amber_count,
             trusted_payee_history=trusted_history,
-            questionnaire_answers=req.questionnaire_answers
+            questionnaire_answers=req.questionnaire_answers,
+            pair_trust=store.get_pair_trust(user_id, payee_vpa)
         )
     except Exception as exc:
         # Safe fallback tier (amber, reason code CHECK_UNAVAILABLE), log to audit, never green
@@ -351,6 +354,48 @@ def submit_questionnaire(
                                {"questionnaire_answers": req.answers, "questionnaire_rules": rules})
     return RiskAssessmentResponse(tier=new_tier, reasons=new_reasons, template_id=template_id,
                                   hold_minutes=new_hold, case_id=case_id)
+
+
+@router.post("/risk/{case_id}/appeal", response_model=AppealResponse)
+def appeal_case(
+    case_id: str,
+    req: AppealRequest,
+    store: SQLiteFeatureStore = Depends(get_feature_store),
+    audit: AuditLogStore = Depends(get_audit_store)
+) -> AppealResponse:
+    """
+    "This was me" on an amber warning: the case is marked disputed and later amber checks for this
+    user and payee turn green. Red and decline have no instant appeal, because a coaching scammer
+    would simply say "tap This was me": use /false-alarm, which changes nothing until an analyst
+    accepts it.
+    """
+    row = _load_case_for_user(store, case_id, req.user_ref)
+    if row["tier"] != "amber":
+        raise HTTPException(status_code=409, detail="Only an amber warning can be marked 'This was me'")
+    store.trust_pair(row["user_id"], row["payee_vpa"], "user", case_id)
+    store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
+                               int(row["hold_minutes"]), {"dispute": "this_was_me"})
+    audit.append_log(case_id=case_id, user_id=row["user_id"], payee_vpa=row["payee_vpa"],
+                     tier="user_this_was_me", reasons=["USER_VOUCHED_PAYEE"])
+    return AppealResponse(case_id=case_id, status="payee_trusted")
+
+
+@router.post("/risk/{case_id}/false-alarm", response_model=AppealResponse)
+def report_false_alarm(
+    case_id: str,
+    req: AppealRequest,
+    store: SQLiteFeatureStore = Depends(get_feature_store),
+    audit: AuditLogStore = Depends(get_audit_store)
+) -> AppealResponse:
+    """Red or decline: sends the case to the analyst console. Nothing else changes."""
+    row = _load_case_for_user(store, case_id, req.user_ref)
+    if row["tier"] not in ("red", "decline"):
+        raise HTTPException(status_code=409, detail="Only a red pause or a decline can be reported as a false alarm")
+    store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
+                               int(row["hold_minutes"]), {"dispute": "false_alarm_pending"})
+    audit.append_log(case_id=case_id, user_id=row["user_id"], payee_vpa=row["payee_vpa"],
+                     tier="user_false_alarm_report", reasons=["USER_DISPUTED"])
+    return AppealResponse(case_id=case_id, status="sent_for_review")
 
 
 @router.post("/payments/complete", response_model=PaymentCompleteResponse)

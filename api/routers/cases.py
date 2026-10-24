@@ -3,12 +3,13 @@ Case Management Endpoints: GET /v1/cases, GET /v1/cases/{id}
 """
 
 import json
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 
-from api.models import CaseResponse
+from api.models import CaseResponse, ConfirmScamRequest
 from api.store.sqlite_store import SQLiteFeatureStore
-from api.routers.assess import get_feature_store
+from api.store.audit_store import AuditLogStore
+from api.routers.assess import get_audit_store, get_feature_store
 from api.security import require_analyst_key
 
 router = APIRouter(prefix="/v1", tags=["cases"], dependencies=[Depends(require_analyst_key)])
@@ -31,9 +32,9 @@ def list_cases(
         except Exception:
             reasons = []
         try:
-            completed = bool(json.loads(r["evidence_pack"] or "{}").get("completed"))
+            evidence = json.loads(r["evidence_pack"] or "{}")
         except Exception:
-            completed = False
+            evidence = {}
 
         results.append(
             CaseResponse(
@@ -46,7 +47,8 @@ def list_cases(
                 template_id=r["template_id"],
                 hold_minutes=int(r["hold_minutes"]),
                 created_at=r["created_at"],
-                status="completed" if completed else "open"
+                status="completed" if evidence.get("completed") else "open",
+                dispute=evidence.get("dispute")
             )
         )
 
@@ -85,6 +87,31 @@ def get_case_evidence(
         hold_minutes=int(row["hold_minutes"]),
         created_at=row["created_at"],
         status="completed" if evidence_pack.get("completed") else "open",
+        dispute=evidence_pack.get("dispute"),
         evidence_pack=evidence_pack
     )
 
+
+
+@router.post("/cases/{case_id}/accept-appeal")
+def accept_appeal(
+    case_id: str,
+    req: ConfirmScamRequest,
+    store: SQLiteFeatureStore = Depends(get_feature_store),
+    audit: AuditLogStore = Depends(get_audit_store)
+) -> Dict[str, Any]:
+    """An analyst accepts a user's false-alarm report: later red or amber checks for this user and
+    payee turn green. A declined payee stays declined until it is cleared for everyone."""
+    row = store.get_case(case_id)
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+    evidence = json.loads(row["evidence_pack"] or "{}")
+    if evidence.get("dispute") != "false_alarm_pending":
+        raise HTTPException(status_code=409, detail="This case has no false-alarm report waiting for review")
+    store.trust_pair(row["user_id"], row["payee_vpa"], "analyst", case_id)
+    store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
+                               int(row["hold_minutes"]),
+                               {"dispute": "false_alarm_accepted", "appeal_accepted_by": req.analyst_id})
+    audit.append_log(case_id=case_id, user_id=f"analyst:{req.analyst_id.strip().lower()}",
+                     payee_vpa=row["payee_vpa"], tier="analyst_accept_appeal", reasons=["APPEAL_ACCEPTED"])
+    return {"case_id": case_id, "dispute": "false_alarm_accepted", "payee_still_declined": row["tier"] == "decline"}

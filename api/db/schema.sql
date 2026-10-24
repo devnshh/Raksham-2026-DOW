@@ -120,3 +120,14 @@ CREATE TABLE IF NOT EXISTS analyst_confirmations (
     created_at TEXT NOT NULL
 );
 
+
+-- Payees a user has vouched for on an amber warning ("This was me", source 'user') or that an
+-- analyst cleared after a false-alarm report (source 'analyst'). See the policy engine for what each lowers.
+CREATE TABLE IF NOT EXISTS trusted_pairs (
+    user_id TEXT NOT NULL,
+    payee_vpa TEXT NOT NULL,
+    source TEXT NOT NULL,
+    case_id TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, payee_vpa)
+);

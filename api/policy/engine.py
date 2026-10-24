@@ -247,6 +247,7 @@ class PolicyEngine:
         user_amber_count_7d: int = 0,
         trusted_payee_history: Optional[Tuple[int, int]] = None,  # (payment_count, history_days)
         questionnaire_answers: Optional[Dict[str, Any]] = None,
+        pair_trust: Optional[str] = None,  # "user" ("This was me" on an amber) or "analyst" (appeal accepted)
         simulate_timeout: bool = False,
         simulate_failure: bool = False
     ) -> PolicyDecision:
@@ -517,6 +518,19 @@ class PolicyEngine:
             tier = "green"
             applied_rules.append("amber_cap_downgraded_to_green")
             reasons = []
+
+        # ---------------------------------------------------------------------
+        # Step 6b: Vouched-for payee. A user's "This was me" lowers only later ambers for this
+        # payee, and not while a call or remote-access app is active (a scammer on the line could
+        # have coached the tap). An analyst-accepted appeal also lowers red, but not while the
+        # screen is shared or a new remote-access app is present. A declined payee was already
+        # returned in step 1.
+        # ---------------------------------------------------------------------
+        lowerable = (("amber", "red") if pair_trust == "analyst" and not has_strong_signal
+                     else ("amber",) if pair_trust == "user" and not has_family_a else ())
+        if tier in lowerable:
+            applied_rules.append(f"{pair_trust}_vouched_payee_green")
+            tier, hold_minutes, reasons = "green", 0, []
 
         # ---------------------------------------------------------------------
         # Step 7: Red-tier Questionnaire (can only raise risk, never lower it)

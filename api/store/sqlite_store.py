@@ -538,6 +538,31 @@ class SQLiteFeatureStore(BaseFeatureStore):
 
             return len(confirmations_list), is_confirmed
 
+    def trust_pair(self, user_id: str, payee_vpa: str, source: str, case_id: str) -> None:
+        """Records that this user's payments to this payee were vouched for. An analyst's word
+        replaces a user's; a user's never replaces an analyst's."""
+        with get_db(self.db_path) as conn:
+            conn.execute(
+                """
+                INSERT INTO trusted_pairs (user_id, payee_vpa, source, case_id, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, payee_vpa) DO UPDATE SET source = excluded.source,
+                    case_id = excluded.case_id, created_at = excluded.created_at
+                WHERE trusted_pairs.source != 'analyst';
+                """,
+                (user_id.strip().lower(), payee_vpa.strip().lower(), source, case_id,
+                 datetime.now(timezone.utc).isoformat())
+            )
+
+    def get_pair_trust(self, user_id: str, payee_vpa: str) -> Optional[str]:
+        """'analyst', 'user' or None."""
+        with get_db(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT source FROM trusted_pairs WHERE user_id = ? AND payee_vpa = ?;",
+                (user_id.strip().lower(), payee_vpa.strip().lower())
+            ).fetchone()
+        return row["source"] if row else None
+
     def clear_payee(self, payee_vpa: str) -> List[str]:
         """Analyst clear: withdraws every confirmation so payments are no longer declined. User reports
         stay on record. Returns the confirmations that were withdrawn."""
