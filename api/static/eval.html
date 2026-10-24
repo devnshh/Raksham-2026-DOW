@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Satark results</title>
+<style>
+  @font-face { font-family: "Google Sans"; src: url("/console/google_sans.ttf") format("truetype"); font-display: swap; }
+  :root {
+    --canvas: #F6F8FB; --surface: #FFFFFF; --ink: #1F1F1F; --muted: #5E6670; --line: #DDE3EA;
+    --primary: #0B57D0; --primary-soft: #D3E3FD; --red: #B3261E; --red-soft: #F9DEDC; --amber: #8A5300; --amber-soft: #FFE9C2;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--canvas); color: var(--ink); font: 15px/1.5 "Google Sans", Roboto, system-ui, sans-serif; }
+  button, input { font: inherit; }
+  :focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+  header { padding: 20px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  h1 { margin: 0; font-size: 22px; font-weight: 500; }
+  .note { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  main { max-width: 1040px; margin: 0 auto; padding: 20px 24px 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; }
+  h2 { margin: 0 0 4px; font-size: 18px; font-weight: 500; }
+  h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 500; }
+  .sub { margin: 0 0 14px; color: var(--muted); font-size: 14px; max-width: 72ch; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+  th { text-align: left; font-weight: 500; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  td:first-child { white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  .wrap { overflow-x: auto; }
+  /* The comparison that matters most: what the policy rules add on top of the model. */
+  .versus { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px 32px; margin-top: 8px; }
+  .metric h3 { margin-top: 0; }
+  .bar-row { display: grid; grid-template-columns: 120px 1fr 72px; align-items: center; gap: 10px; margin: 8px 0; font-size: 14px; }
+  .bar { height: 14px; background: var(--canvas); border-radius: 7px; overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 7px; background: var(--primary); }
+  .bar.policy span { background: var(--amber); }
+  .bar-row .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .notes ul { padding-left: 20px; margin: 6px 0 14px; }
+  .notes li { margin: 6px 0; max-width: 90ch; }
+  .notes p { margin: 8px 0; max-width: 90ch; }
+  .notes code { font-size: 13px; background: var(--canvas); padding: 1px 5px; border-radius: 4px; }
+  form.fresh { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  form.fresh label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+  form.fresh input { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; width: 140px; color: var(--ink); }
+  .btn { border-radius: 999px; padding: 9px 20px; cursor: pointer; border: 0; background: var(--primary); color: #fff; font-weight: 500; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  #fresh-status { margin: 12px 0 0; font-size: 14px; }
+  .err { color: var(--red); }
+  @media (max-width: 640px) { main { padding: 16px; } section { padding: 16px; } .bar-row { grid-template-columns: 96px 1fr 60px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Satark results</h1>
+  <p class="note">Simulation results on an unseen synthetic world, not real-world accuracy.</p>
+</header>
+<main>
+  <section aria-labelledby="run-h">
+    <h2 id="run-h">Holdout world</h2>
+    <p class="sub" id="run-meta">Loading the last logged run…</p>
+    <div class="versus" id="versus"></div>
+  </section>
+
+  <section aria-labelledby="metrics-h">
+    <h2 id="metrics-h">Model only, and model plus policy</h2>
+    <p class="sub">Every payment is scored by the deployed model with only what the phone and server have at payment time, then replayed through the production policy (eligibility gate, two-of-four rule, weekly warning cap) in time order per user. A warning is any amber or red screen.</p>
+    <div class="wrap"><table id="metrics"></table></div>
+  </section>
+
+  <section aria-labelledby="scen-h">
+    <h2 id="scen-h">Scams warned, by type</h2>
+    <p class="sub">Share of scam payments that got a warning. "Unseen" refits the model without that scam type and sets its cut-off on the validation world, to show how it does on a scam it never saw.</p>
+    <div class="wrap"><table id="scenarios"></table></div>
+  </section>
+
+  <section aria-labelledby="fair-h">
+    <h2 id="fair-h">False alarms by group</h2>
+    <p class="sub">Share of genuine payments that got a warning, for each group.</p>
+    <div class="wrap"><table id="fairness"></table></div>
+  </section>
+
+  <section aria-labelledby="fail-h">
+    <h2 id="fail-h">Named failure cases</h2>
+    <div class="notes" id="notes"></div>
+  </section>
+
+  <section aria-labelledby="fresh-h">
+    <h2 id="fresh-h">Score a fresh world</h2>
+    <p class="sub">Pick any seed nobody has used. The server generates a new world of synthetic users, runs the leak checks and scores every payment through the same path. Seeds 11, 22 and 33 are taken by the train, holdout and validation worlds.</p>
+    <form class="fresh" id="fresh">
+      <label>Seed<input id="seed" type="number" min="1" required></label>
+      <label>Users<input id="users" type="number" min="100" max="1000" value="300"></label>
+      <button class="btn" type="submit" id="fresh-btn">Generate and score</button>
+    </form>
+    <p id="fresh-status" role="status"></p>
+    <div class="wrap"><table id="fresh-table" hidden></table></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+function el(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) { if (k === "class") n.className = v; else if (k === "style") n.style.cssText = v; else n[k] = v; }
+  for (const c of kids.flat()) if (c != null) n.append(c);
+  return n;
+}
+const pct = (v, d = 1) => v == null ? "n/a" : `${(100 * v).toFixed(d)}%`;
+const num = (v, d = 2) => v == null ? "n/a" : Number(v).toLocaleString("en-IN", { maximumFractionDigits: d });
+const NAMES = { fake_qr: "Fake QR", kyc_link: "KYC link", otp_takeover: "OTP takeover" };
+const nice = (s) => NAMES[s] || s.replace(/_/g, " ").replace(/^./, (m) => m.toUpperCase());
+const VERSIONS = [["model_only", "Model only"], ["model_plus_policy", "Model + policy"]];
+
+function table(target, head, rows) {
+  target.replaceChildren(
+    el("thead", {}, el("tr", {}, head.map((h, i) => el("th", { class: i ? "n" : "" }, h)))),
+    el("tbody", {}, rows.map((r) => el("tr", {}, r.map((c, i) => el("td", { class: i ? "n" : "" }, c))))));
+}
+
+function metricsRows(res) {
+  return VERSIONS.map(([k, name]) => {
+    const w = res[k].warning, r = res[k].red;
+    return [name, pct(w.precision), pct(w.recall), pct(w.false_positive_rate, 2), num(w.alerts_per_1000),
+            pct(w.journeys_interrupted, 0), pct(r.precision), pct(r.recall)];
+  });
+}
+const METRIC_HEAD = ["Version", "Warning precision", "Warning recall", "False-alarm rate", "Warnings per 1,000", "Journeys warned", "Red precision", "Red recall"];
+
+function bars(title, rows, fmt) {
+  const max = Math.max(...rows.map((r) => r[1]), 1e-9);
+  return el("div", { class: "metric" }, el("h3", {}, title), rows.map(([label, v, cls]) =>
+    el("div", { class: "bar-row" }, el("span", {}, label),
+      el("div", { class: `bar ${cls}`, role: "img", ariaLabel: `${label}: ${fmt(v)}` }, el("span", { style: `width:${(v / max) * 100}%` })),
+      el("span", { class: "v" }, fmt(v)))));
+}
+
+// Notes are written in the log as Markdown: paragraphs, "- " bullets and **bold**. Built as DOM nodes, never as HTML.
+function renderNotes(md) {
+  const out = []; let list = null;
+  const inline = (line) => line.split(/(\*\*[^*]+\*\*|`[^`]+`)/).map((part) =>
+    part.startsWith("**") && part.endsWith("**") ? el("strong", {}, part.slice(2, -2))
+    : part.startsWith("`") && part.endsWith("`") ? el("code", {}, part.slice(1, -1)) : part);
+  for (const line of md.split("\n")) {
+    if (line.startsWith("- ")) { if (!list) out.push(list = el("ul")); list.append(el("li", {}, inline(line.slice(2)))); }
+    else { list = null; if (line.trim()) out.push(el("p", {}, inline(line))); }
+  }
+  return out;
+}
+
+async function loadLatest() {
+  let data;
+  try {
+    const r = await fetch("/v1/eval/latest");
+    if (!r.ok) throw new Error((await r.json()).detail || r.status);
+    data = await r.json();
+  } catch (e) { $("run-meta").textContent = `No results to show: ${e.message}`; $("run-meta").className = "sub err"; return; }
+  const res = data.result;
+  $("run-meta").textContent =
+    `Run ${res.holdout_run} of ${data.runs_logged} logged holdout run${data.runs_logged === 1 ? "" : "s"} (simulator seed ${res.seed}, ` +
+    `commit ${res.git_commit.slice(0, 7)}, ${res.date} UTC). ${num(res.payments, 0)} payments, ${res.scam_payments} of them scams in ` +
+    `${res.scam_journeys} journeys. Every holdout run is logged; this is the last one.`;
+  const m = res.model_only.warning, p = res.model_plus_policy.warning;
+  $("versus").replaceChildren(
+    bars("Warnings per 1,000 payments", [["Model only", m.alerts_per_1000, ""], ["Model + policy", p.alerts_per_1000, "policy"]], (v) => v.toFixed(1)),
+    bars("Scam payments warned", [["Model only", m.recall, ""], ["Model + policy", p.recall, "policy"]], (v) => pct(v)));
+  table($("metrics"), METRIC_HEAD, metricsRows(res));
+
+  const scen = Object.keys(res.model_only.warning.recall_by_scenario);
+  const loso = res.unseen_scam_types_recall || {};
+  table($("scenarios"), ["Scam type", "Model only", "Model + policy", "Unseen (model only)"], [
+    ...scen.map((s) => [nice(s), pct(res.model_only.warning.recall_by_scenario[s], 0),
+                        pct(res.model_plus_policy.warning.recall_by_scenario[s], 0), pct(loso[s], 0)]),
+    ["Evasive journeys", pct(res.model_only.warning.recall_evasive, 0), pct(res.model_plus_policy.warning.recall_evasive, 0), ""],
+    ["Plain journeys", pct(res.model_only.warning.recall_plain, 0), pct(res.model_plus_policy.warning.recall_plain, 0), ""],
+  ]);
+
+  const SLICE = { age_band: "Age", language: "Language", device_tier: "Phone tier", assistive_tech: "Screen reader" };
+  const groupName = (c, k) => c === "assistive_tech" ? (k === "1" ? "Screen-reader users" : "Other users")
+    : c === "language" ? ({ hi: "Hindi", en: "English", other: "Other languages" }[k] || k) : `${SLICE[c]} ${k}`;
+  const fo = res.model_only.warning.false_alarm_rate_by_group, fp = res.model_plus_policy.warning.false_alarm_rate_by_group;
+  table($("fairness"), ["Group", "Model only", "Model + policy"], [
+    ["All genuine payments", pct(m.false_positive_rate, 2), pct(p.false_positive_rate, 2)],
+    ...Object.keys(fo).flatMap((c) => Object.keys(fo[c]).map((k) => [groupName(c, k), pct(fo[c][k], 2), pct(fp[c][k], 2)])),
+  ]);
+  $("notes").replaceChildren(...(data.failure_notes ? renderNotes(data.failure_notes) : [el("p", {}, "No notes logged for this run.")]));
+}
+
+$("fresh").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const seed = Number($("seed").value), users = Number($("users").value) || 300;
+  const status = $("fresh-status");
+  $("fresh-btn").disabled = true; $("fresh-table").hidden = true; status.className = "";
+  status.textContent = `Generating ${users} users from seed ${seed} and scoring every payment. This takes about half a minute.`;
+  const t0 = performance.now();
+  try {
+    const r = await fetch("/v1/eval/fresh", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ seed, users }) });
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.detail || r.status);
+    status.textContent = `Seed ${seed}: ${num(res.payments, 0)} payments, ${res.scam_payments} scam payments in ${res.scam_journeys} journeys, ` +
+      `scored in ${Math.round((performance.now() - t0) / 1000)} s. Small worlds have few scams, so these numbers move a lot between seeds.`;
+    table($("fresh-table"), METRIC_HEAD, metricsRows(res));
+    $("fresh-table").hidden = false;
+  } catch (err) { status.className = "err"; status.textContent = `Not scored: ${err.message}`; }
+  finally { $("fresh-btn").disabled = false; }
+});
+
+loadLatest();
+</script>
+</body>
+</html>

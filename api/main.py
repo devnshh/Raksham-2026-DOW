@@ -22,7 +22,8 @@ from api.routers import (
     policy_router,
     health_router,
     internal_router,
-    console_router
+    console_router,
+    eval_router
 )
 
 
@@ -67,6 +68,7 @@ app.include_router(report_router)
 app.include_router(policy_router)
 app.include_router(internal_router)
 app.include_router(console_router)
+app.include_router(eval_router)
 
 
 @app.exception_handler(Exception)

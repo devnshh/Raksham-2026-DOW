@@ -101,6 +101,10 @@ A brand-new handle typed live gets a warning, not a red pause: red needs corrobo
 
 The model looks at the hour of day. The demo user often pays between 13:00 and 15:59, so at those hours the fake CBI notice scores just under the red cut-off and shows the amber warning instead. Demo-data change for the retrained model (`ml/train.py`): the seeded `electricity-rebate@oksbi` payee now has 3 prior reports instead of 1, which keeps that journey red at every hour.
 
+### Results page
+
+`http://127.0.0.1:8000/eval` shows the last logged holdout run (`ml/eval_log.md`): model only against model plus policy, recall by scam type, false alarms by group and the named failure cases. "Score a fresh world" generates a world from any unused seed and scores it live through `ml/evaluate.py`, leak checks included. The first run on a new checkout also generates the train and holdout worlds for the leak checks (about a minute and a half); later runs take seconds.
+
 ### Mule caught (analyst console)
 
 1. Open `http://127.0.0.1:8000/console` and paste the analyst key the start script printed.
