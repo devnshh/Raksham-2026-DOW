@@ -6,6 +6,7 @@ from api.routers.report import router as report_router
 from api.routers.policy import router as policy_router
 from api.routers.health import router as health_router
 from api.routers.internal import router as internal_router
+from api.routers.console import router as console_router
 
 __all__ = [
     "assess_router",
@@ -14,6 +15,7 @@ __all__ = [
     "report_router",
     "policy_router",
     "health_router",
-    "internal_router"
+    "internal_router",
+    "console_router"
 ]
 
