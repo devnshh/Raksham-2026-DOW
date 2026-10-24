@@ -1,10 +1,13 @@
 package com.raksham.upi.ui.screens
 
-import kotlin.math.sin
-import kotlin.math.PI
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.BlendMode
+import kotlin.math.cos
+import androidx.compose.ui.graphics.lerp
+import kotlin.math.PI
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -37,7 +40,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -188,21 +190,21 @@ fun ScanQrScreen(
 }
 
 /**
- * Tonal square with four rounded corner brackets and a light beam sweeping down inside them. The beam
- * always travels top to bottom, fades in and out at the ends, and has feathered sides, so it never
- * shows a hard edge. On detection the beam fades, the brackets close in and turn green, and a check
- * pops in.
+ * Tonal square with four rounded corner brackets around a QR code. While scanning, a soft ring of
+ * light ripples out from the centre of the code, tinting it as it passes, and the brackets ease
+ * in like a camera finding focus. On detection the code turns green, the brackets close in and a
+ * check pops in.
  */
 @Composable
 private fun Viewfinder(detected: Boolean) {
-    val sweep = rememberInfiniteTransition(label = "sweep")
-    val progress by sweep.animateFloat(
+    val reading = rememberInfiniteTransition(label = "reading")
+    val wave by reading.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(2400, easing = LinearEasing), RepeatMode.Restart),
-        label = "beam"
+        animationSpec = infiniteRepeatable(tween(2000, easing = LinearEasing), RepeatMode.Restart),
+        label = "wave"
     )
-    val beamAlpha by animateFloatAsState(if (detected) 0f else 1f, tween(Motion.SHORT), label = "beam alpha")
+    val found by animateFloatAsState(if (detected) 1f else 0f, tween(Motion.MEDIUM, easing = Motion.EmphasizedDecelerate), label = "found")
     val bracketScale by animateFloatAsState(
         if (detected) 0.9f else 1f,
         spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
@@ -213,7 +215,9 @@ private fun Viewfinder(detected: Boolean) {
         tween(Motion.MEDIUM),
         label = "bracket colour"
     )
-    val beamColor = MaterialTheme.colorScheme.primary
+    val idle = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)
+    val lit = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+    val done = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
 
     Box(
         contentAlignment = Alignment.Center,
@@ -222,46 +226,39 @@ private fun Viewfinder(detected: Boolean) {
             .clip(RoundedCornerShape(32.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer)
     ) {
-        // Beam, drawn offscreen so a horizontal mask can feather both sides.
-        Canvas(
-            Modifier
-                .fillMaxSize()
-                .padding(40.dp)
-                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen, alpha = beamAlpha)
-        ) {
-            val w = size.width
-            val h = size.height
-            val eased = FastOutSlowInEasing.transform(progress)
-            val y = h * eased
-            val fade = sin(PI * progress).toFloat()
-            val trail = 72.dp.toPx()
+        Icon(
+            Icons.Outlined.QrCode2,
+            contentDescription = null,
+            tint = Color.Black,
+            modifier = Modifier
+                .size(170.dp)
+                .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+                .drawWithContent {
+                    drawContent()
+                    // Recolour the code (SrcIn keeps its shape) with a radial ring centred on it.
+                    val reach = size.minDimension * 0.75f
+                    val front = (-0.15f + wave * 1.3f) / 1.3f
+                    val band = 0.16f
+                    val base = lerp(idle, done, found)
+                    val ring = lerp(lit, done, found)
+                    drawRect(
+                        Brush.radialGradient(
+                            0f to base,
+                            (front - band).coerceIn(0f, 1f) to base,
+                            front.coerceIn(0f, 1f) to ring,
+                            (front + band).coerceIn(0f, 1f) to base,
+                            1f to base,
+                            center = center,
+                            radius = reach
+                        ),
+                        blendMode = BlendMode.SrcIn
+                    )
+                }
+        )
 
-            drawRect(
-                Brush.verticalGradient(
-                    0f to Color.Transparent,
-                    0.75f to beamColor.copy(alpha = 0.10f * fade),
-                    1f to beamColor.copy(alpha = 0.22f * fade),
-                    startY = y - trail,
-                    endY = y
-                ),
-                topLeft = Offset(0f, y - trail),
-                size = Size(w, trail)
-            )
-            drawLine(beamColor.copy(alpha = 0.25f * fade), Offset(0f, y), Offset(w, y), strokeWidth = 7.dp.toPx(), cap = StrokeCap.Round)
-            drawLine(beamColor.copy(alpha = fade), Offset(0f, y), Offset(w, y), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
-            // Feather the left and right edges.
-            drawRect(
-                Brush.horizontalGradient(
-                    0f to Color.Transparent,
-                    0.18f to Color.Black,
-                    0.82f to Color.Black,
-                    1f to Color.Transparent
-                ),
-                blendMode = BlendMode.DstIn
-            )
-        }
-
-        Canvas(Modifier.fillMaxSize().padding(28.dp).scale(bracketScale)) {
+        // Focus pulse: the brackets ease in and back once per wave.
+        val focus = 1f - 0.035f * (0.5f - 0.5f * cos(2 * PI.toFloat() * wave)) * (1f - found)
+        Canvas(Modifier.fillMaxSize().padding(28.dp).scale(bracketScale * focus)) {
             val arm = size.minDimension * 0.2f
             val r = 18.dp.toPx()
             val stroke = Stroke(width = 4.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
