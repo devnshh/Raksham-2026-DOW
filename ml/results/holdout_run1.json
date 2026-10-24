@@ -1,0 +1,942 @@
+{
+  "role": "holdout",
+  "seed": 22,
+  "users": 5000,
+  "date": "2026-10-24 06:41",
+  "git_commit": "8ac337d136d14d3809b19664dd5587a62e75ecc4",
+  "model_sha256": "0502ccf9163052e9e25ff7469ba644f22b68d861a8ecee6e3c70371278e4d9cf",
+  "thresholds_sha256": "f5fa4fcb5910d1fe991946684195c5269b4b6bc9ef2018194a6e4cb8345992ab",
+  "thresholds": {
+    "amber": 0.8585662245750427,
+    "red": 0.9973271489143372
+  },
+  "payments": 448127,
+  "scam_payments": 143,
+  "scam_journeys": 60,
+  "holdout_run": 1,
+  "note": "Simulation results on an unseen synthetic world, not real-world accuracy.",
+  "model_only": {
+    "warning": {
+      "tp": 136,
+      "fp": 327,
+      "fn": 7,
+      "tn": 447657,
+      "precision": 0.2937365010799136,
+      "recall": 0.951048951048951,
+      "false_positive_rate": 0.0007299367834565521,
+      "alerts_per_1000": 1.0331892521539654,
+      "journeys_interrupted": 1.0,
+      "recall_by_scenario": {
+        "customer_care": 1.0,
+        "digital_arrest": 1.0,
+        "fake_qr": 0.9333333333333333,
+        "investment": 0.9130434782608695,
+        "kyc_link": 0.9285714285714286,
+        "otp_takeover": 1.0,
+        "task_scam": 0.9473684210526315
+      },
+      "recall_evasive": 0.9090909090909091,
+      "recall_plain": 0.9636363636363636,
+      "recall_by_evasion": {
+        "aged_mule": 1.0,
+        "calm_victim": 0.9090909090909091,
+        "hang_up_first": 0.8571428571428571
+      },
+      "false_alarm_rate_by_group": {
+        "age_band": {
+          "18-25": 0.0006494406151501507,
+          "26-40": 0.000801211280045423,
+          "41-60": 0.0007621234075384355,
+          "60+": 0.0006498493531045076
+        },
+        "language": {
+          "en": 0.0006447736697879574,
+          "hi": 0.0007829534192269574,
+          "other": 0.0007383639313777324
+        },
+        "device_tier": {
+          "high": 0.0007878712843427465,
+          "low": 0.0007322240046504609,
+          "mid": 0.00069910669699828
+        },
+        "assistive_tech": {
+          "0": 0.0007252838984693773,
+          "1": 0.0009438909281594127
+        }
+      }
+    },
+    "red": {
+      "tp": 112,
+      "fp": 7,
+      "fn": 31,
+      "tn": 447977,
+      "precision": 0.9411764705882353,
+      "recall": 0.7832167832167832,
+      "false_positive_rate": 1.5625558055644844e-05,
+      "alerts_per_1000": 0.2655497213959435,
+      "journeys_interrupted": 0.8833333333333333,
+      "recall_by_scenario": {
+        "customer_care": 0.8260869565217391,
+        "digital_arrest": 1.0,
+        "fake_qr": 0.4666666666666667,
+        "investment": 0.8260869565217391,
+        "kyc_link": 0.7857142857142857,
+        "otp_takeover": 0.8333333333333334,
+        "task_scam": 0.8070175438596491
+      },
+      "recall_evasive": 0.696969696969697,
+      "recall_plain": 0.8090909090909091,
+      "recall_by_evasion": {
+        "aged_mule": 0.5,
+        "calm_victim": 0.8181818181818182,
+        "hang_up_first": 0.42857142857142855
+      },
+      "false_alarm_rate_by_group": {
+        "age_band": {
+          "18-25": 0.0,
+          "26-40": 1.2617500473156268e-05,
+          "41-60": 2.8226792871793906e-05,
+          "60+": 2.95386069592958e-05
+        },
+        "language": {
+          "en": 2.198092056095309e-05,
+          "hi": 9.910802775024776e-06,
+          "other": 1.823120818216623e-05
+        },
+        "device_tier": {
+          "high": 0.0,
+          "low": 2.2357984874823232e-05,
+          "mid": 1.6645397547578096e-05
+        },
+        "assistive_tech": {
+          "0": 1.368460185791278e-05,
+          "1": 0.0001048767697954903
+        }
+      }
+    }
+  },
+  "model_plus_policy": {
+    "warning": {
+      "tp": 129,
+      "fp": 18756,
+      "fn": 14,
+      "tn": 429228,
+      "precision": 0.006830818109610802,
+      "recall": 0.9020979020979021,
+      "false_positive_rate": 0.04186756669881067,
+      "alerts_per_1000": 42.14207133245709,
+      "journeys_interrupted": 1.0,
+      "recall_by_scenario": {
+        "customer_care": 0.9565217391304348,
+        "digital_arrest": 1.0,
+        "fake_qr": 0.9333333333333333,
+        "investment": 0.9565217391304348,
+        "kyc_link": 0.9285714285714286,
+        "otp_takeover": 1.0,
+        "task_scam": 0.8245614035087719
+      },
+      "recall_evasive": 0.8787878787878788,
+      "recall_plain": 0.9090909090909091,
+      "recall_by_evasion": {
+        "aged_mule": 1.0,
+        "calm_victim": 0.8636363636363636,
+        "hang_up_first": 0.8571428571428571
+      },
+      "false_alarm_rate_by_group": {
+        "age_band": {
+          "18-25": 0.041875930864881714,
+          "26-40": 0.04225600908460034,
+          "41-60": 0.04106057469750287,
+          "60+": 0.042210669344833696
+        },
+        "language": {
+          "en": 0.04182236485397342,
+          "hi": 0.04128840436075322,
+          "other": 0.042989188893547976
+        },
+        "device_tier": {
+          "high": 0.04179094398235168,
+          "low": 0.04178707373104462,
+          "mid": 0.041985241080841146
+        },
+        "assistive_tech": {
+          "0": 0.041893127821023654,
+          "1": 0.040692186680650236
+        }
+      }
+    },
+    "red": {
+      "tp": 102,
+      "fp": 5,
+      "fn": 41,
+      "tn": 447979,
+      "precision": 0.9532710280373832,
+      "recall": 0.7132867132867133,
+      "false_positive_rate": 1.1161112896889174e-05,
+      "alerts_per_1000": 0.23877159822996605,
+      "journeys_interrupted": 0.8833333333333333,
+      "recall_by_scenario": {
+        "customer_care": 0.8260869565217391,
+        "digital_arrest": 1.0,
+        "fake_qr": 0.4666666666666667,
+        "investment": 0.8260869565217391,
+        "kyc_link": 0.7857142857142857,
+        "otp_takeover": 0.8333333333333334,
+        "task_scam": 0.631578947368421
+      },
+      "recall_evasive": 0.6060606060606061,
+      "recall_plain": 0.7454545454545455,
+      "recall_by_evasion": {
+        "aged_mule": 0.5,
+        "calm_victim": 0.6818181818181818,
+        "hang_up_first": 0.42857142857142855
+      },
+      "false_alarm_rate_by_group": {
+        "age_band": {
+          "18-25": 0.0,
+          "26-40": 1.2617500473156268e-05,
+          "41-60": 9.408930957264635e-06,
+          "60+": 2.95386069592958e-05
+        },
+        "language": {
+          "en": 1.4653947040635395e-05,
+          "hi": 9.910802775024776e-06,
+          "other": 9.115604091083115e-06
+        },
+        "device_tier": {
+          "high": 0.0,
+          "low": 1.6768488656117424e-05,
+          "mid": 1.1096931698385396e-05
+        },
+        "assistive_tech": {
+          "0": 9.123067905275186e-06,
+          "1": 0.0001048767697954903
+        }
+      }
+    }
+  },
+  "failures": {
+    "top_missed": [
+      {
+        "scenario": "task_scam",
+        "variant": "plain",
+        "deciding_rule": "amber_cap_downgraded_to_green",
+        "payments": 6,
+        "examples": [
+          {
+            "event_id": 209339,
+            "scenario": "task_scam",
+            "variant": "",
+            "tags": "",
+            "amount": 504.55,
+            "entry": "contact",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 1,
+            "payee_age_days": 8.8,
+            "fan_in_24h": 30,
+            "reports": 0,
+            "amount_ratio": 1.99,
+            "deciding_rule": "amber_cap_downgraded_to_green",
+            "tier": "green",
+            "model_reasons": [
+              "UNUSUAL_HOUR",
+              "NEW_PAYEE_YOUNG_ACCOUNT",
+              "FAN_IN_24H"
+            ]
+          },
+          {
+            "event_id": 232846,
+            "scenario": "task_scam",
+            "variant": "",
+            "tags": "",
+            "amount": 522.65,
+            "entry": "contact",
+            "note_intent_sent": "task",
+            "on_call": 0,
+            "payee_first_time": 1,
+            "payee_age_days": 23.7,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 2.1,
+            "deciding_rule": "amber_cap_downgraded_to_green",
+            "tier": "green",
+            "model_reasons": [
+              "NOTE_INTENT_RISK",
+              "NEW_PAYEE_YOUNG_ACCOUNT",
+              "NEW_PAYEE"
+            ]
+          },
+          {
+            "event_id": 332871,
+            "scenario": "task_scam",
+            "variant": "",
+            "tags": "",
+            "amount": 30564.42,
+            "entry": "contact",
+            "note_intent_sent": "task",
+            "on_call": 0,
+            "payee_first_time": 1,
+            "payee_age_days": 301.1,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 88.87,
+            "deciding_rule": "amber_cap_downgraded_to_green",
+            "tier": "green",
+            "model_reasons": [
+              "NOTE_INTENT_RISK",
+              "SESSION_PRESSURE",
+              "UNUSUAL_HOUR"
+            ]
+          }
+        ]
+      },
+      {
+        "scenario": "task_scam",
+        "variant": "calm_victim",
+        "deciding_rule": "green_below_threshold",
+        "payments": 2,
+        "examples": [
+          {
+            "event_id": 258747,
+            "scenario": "task_scam",
+            "variant": "calm_victim",
+            "tags": "",
+            "amount": 234.16,
+            "entry": "typed_vpa",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 1,
+            "payee_age_days": 544.3,
+            "fan_in_24h": 11,
+            "reports": 0,
+            "amount_ratio": 0.71,
+            "deciding_rule": "green_below_threshold",
+            "tier": "green",
+            "model_reasons": [
+              "UNUSUAL_HOUR",
+              "NEW_PAYEE",
+              "FAN_IN_24H"
+            ]
+          },
+          {
+            "event_id": 287645,
+            "scenario": "task_scam",
+            "variant": "calm_victim",
+            "tags": "",
+            "amount": 322.84,
+            "entry": "contact",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 1,
+            "payee_age_days": 311.8,
+            "fan_in_24h": 14,
+            "reports": 0,
+            "amount_ratio": 1.32,
+            "deciding_rule": "green_below_threshold",
+            "tier": "green",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "NEW_PAYEE",
+              "SESSION_PRESSURE"
+            ]
+          }
+        ]
+      },
+      {
+        "scenario": "customer_care",
+        "variant": "hang_up_first",
+        "deciding_rule": "amber_cap_downgraded_to_green",
+        "payments": 1,
+        "examples": [
+          {
+            "event_id": 409504,
+            "scenario": "customer_care",
+            "variant": "hang_up_first",
+            "tags": "",
+            "amount": 1776.4,
+            "entry": "typed_vpa",
+            "note_intent_sent": "refund",
+            "on_call": 0,
+            "payee_first_time": 1,
+            "payee_age_days": 75.7,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 6.14,
+            "deciding_rule": "amber_cap_downgraded_to_green",
+            "tier": "green",
+            "model_reasons": [
+              "UNUSUAL_HOUR",
+              "SESSION_PRESSURE",
+              "NEW_PAYEE"
+            ]
+          }
+        ]
+      },
+      {
+        "scenario": "fake_qr",
+        "variant": "plain",
+        "deciding_rule": "amber_cap_downgraded_to_green",
+        "payments": 1,
+        "examples": [
+          {
+            "event_id": 325102,
+            "scenario": "fake_qr",
+            "variant": "",
+            "tags": "",
+            "amount": 2359.26,
+            "entry": "qr_gallery",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 25.9,
+            "fan_in_24h": 1,
+            "reports": 0,
+            "amount_ratio": 7.8,
+            "deciding_rule": "amber_cap_downgraded_to_green",
+            "tier": "green",
+            "model_reasons": [
+              "UNUSUAL_HOUR",
+              "NEW_PAYEE_YOUNG_ACCOUNT",
+              "AMOUNT_UNUSUAL"
+            ]
+          }
+        ]
+      },
+      {
+        "scenario": "investment",
+        "variant": "plain",
+        "deciding_rule": "green_below_threshold",
+        "payments": 1,
+        "examples": [
+          {
+            "event_id": 418687,
+            "scenario": "investment",
+            "variant": "",
+            "tags": "",
+            "amount": 11113.36,
+            "entry": "typed_vpa",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 1,
+            "payee_age_days": 1112.3,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 37.68,
+            "deciding_rule": "green_below_threshold",
+            "tier": "green",
+            "model_reasons": [
+              "UNUSUAL_HOUR",
+              "AMOUNT_UNUSUAL",
+              "SESSION_PRESSURE"
+            ]
+          }
+        ]
+      },
+      {
+        "scenario": "kyc_link",
+        "variant": "plain",
+        "deciding_rule": "amber_cap_downgraded_to_green",
+        "payments": 1,
+        "examples": [
+          {
+            "event_id": 441472,
+            "scenario": "kyc_link",
+            "variant": "",
+            "tags": "",
+            "amount": 4.86,
+            "entry": "deep_link_sms",
+            "note_intent_sent": "kyc",
+            "on_call": 0,
+            "payee_first_time": 1,
+            "payee_age_days": 218.4,
+            "fan_in_24h": 26,
+            "reports": 0,
+            "amount_ratio": 0.02,
+            "deciding_rule": "amber_cap_downgraded_to_green",
+            "tier": "green",
+            "model_reasons": [
+              "NOTE_INTENT_RISK",
+              "BAD_LINK",
+              "NEW_PAYEE"
+            ]
+          }
+        ]
+      }
+    ],
+    "top_false_alarms": [
+      {
+        "tag": "on_call_legit",
+        "false_alarms": 13987,
+        "share_of_false_alarms": 0.7457346982298998,
+        "false_alarm_rate_in_tag": 0.33696306825025896,
+        "examples": [
+          {
+            "event_id": 149150,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "on_call_legit",
+            "amount": 2352.22,
+            "entry": "qr_scan",
+            "note_intent_sent": "none",
+            "on_call": 1,
+            "payee_first_time": 0,
+            "payee_age_days": 375.8,
+            "fan_in_24h": 8,
+            "reports": 0,
+            "amount_ratio": 7.73,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "AMOUNT_UNUSUAL"
+            ]
+          },
+          {
+            "event_id": 149158,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "on_call_legit",
+            "amount": 115.72,
+            "entry": "qr_scan",
+            "note_intent_sent": "none",
+            "on_call": 1,
+            "payee_first_time": 0,
+            "payee_age_days": 705.7,
+            "fan_in_24h": 51,
+            "reports": 0,
+            "amount_ratio": 0.54,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "SESSION_PRESSURE",
+              "UNVERIFIED_PAYEE"
+            ]
+          },
+          {
+            "event_id": 149169,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "emergency|on_call_legit",
+            "amount": 11924.98,
+            "entry": "typed_vpa",
+            "note_intent_sent": "none",
+            "on_call": 1,
+            "payee_first_time": 1,
+            "payee_age_days": 1986.7,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 25.61,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "AMOUNT_UNUSUAL",
+              "SESSION_PRESSURE",
+              "UNUSUAL_HOUR"
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "none",
+        "false_alarms": 1909,
+        "share_of_false_alarms": 0.10178076348901685,
+        "false_alarm_rate_in_tag": 0.005442281596022488,
+        "examples": [
+          {
+            "event_id": 149315,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "",
+            "amount": 1026.55,
+            "entry": "qr_scan",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 1178.4,
+            "fan_in_24h": 5,
+            "reports": 0,
+            "amount_ratio": 4.05,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "UNUSUAL_HOUR",
+              "UNVERIFIED_PAYEE"
+            ]
+          },
+          {
+            "event_id": 149709,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "",
+            "amount": 923.2,
+            "entry": "qr_scan",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 978.9,
+            "fan_in_24h": 22,
+            "reports": 0,
+            "amount_ratio": 4.04,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "UNVERIFIED_PAYEE"
+            ]
+          },
+          {
+            "event_id": 149724,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "",
+            "amount": 1175.1,
+            "entry": "qr_scan",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 688.3,
+            "fan_in_24h": 7,
+            "reports": 0,
+            "amount_ratio": 6.72,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "AMOUNT_UNUSUAL",
+              "UNVERIFIED_PAYEE"
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "family_screen_share",
+        "false_alarms": 1314,
+        "share_of_false_alarms": 0.07005758157389635,
+        "false_alarm_rate_in_tag": 1.0,
+        "examples": [
+          {
+            "event_id": 150746,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "family_screen_share",
+            "amount": 2493.66,
+            "entry": "contact",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 1734.5,
+            "fan_in_24h": 1,
+            "reports": 0,
+            "amount_ratio": 9.46,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "AMOUNT_UNUSUAL",
+              "REPEAT_PAYEE_24H",
+              "SCREEN_SHARED"
+            ]
+          },
+          {
+            "event_id": 150850,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "family_screen_share",
+            "amount": 358.95,
+            "entry": "contact",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 752.4,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 1.17,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "SCREEN_SHARED",
+              "UNVERIFIED_PAYEE"
+            ]
+          },
+          {
+            "event_id": 151076,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "family_screen_share",
+            "amount": 1136.33,
+            "entry": "qr_scan",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 3208.4,
+            "fan_in_24h": 4,
+            "reports": 0,
+            "amount_ratio": 5.57,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "SCREEN_SHARED",
+              "SESSION_PRESSURE",
+              "REPEAT_PAYEE_24H"
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "legit_link",
+        "false_alarms": 911,
+        "share_of_false_alarms": 0.04857112390701642,
+        "false_alarm_rate_in_tag": 0.03769915166563211,
+        "examples": [
+          {
+            "event_id": 149285,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "legit_link",
+            "amount": 1186.36,
+            "entry": "deep_link_sms",
+            "note_intent_sent": "home",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 4832.2,
+            "fan_in_24h": 17,
+            "reports": 1,
+            "amount_ratio": 5.0,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "PAYEE_REPORTED",
+              "LINK_ENTRY"
+            ]
+          },
+          {
+            "event_id": 149379,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "legit_link|on_call_legit",
+            "amount": 200.99,
+            "entry": "deep_link_sms",
+            "note_intent_sent": "none",
+            "on_call": 1,
+            "payee_first_time": 0,
+            "payee_age_days": 859.1,
+            "fan_in_24h": 8,
+            "reports": 0,
+            "amount_ratio": 0.5,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "UNVERIFIED_PAYEE",
+              "LINK_ENTRY"
+            ]
+          },
+          {
+            "event_id": 149442,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "legit_link",
+            "amount": 1035.37,
+            "entry": "deep_link_sms",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 341.5,
+            "fan_in_24h": 9,
+            "reports": 0,
+            "amount_ratio": 4.02,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "LINK_ENTRY",
+              "SESSION_PRESSURE"
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "item_purchase",
+        "false_alarms": 906,
+        "share_of_false_alarms": 0.04830454254638516,
+        "false_alarm_rate_in_tag": 0.5197934595524957,
+        "examples": [
+          {
+            "event_id": 149310,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "item_purchase|on_call_legit",
+            "amount": 6062.94,
+            "entry": "typed_vpa",
+            "note_intent_sent": "none",
+            "on_call": 1,
+            "payee_first_time": 1,
+            "payee_age_days": 581.5,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 20.93,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "AMOUNT_UNUSUAL",
+              "SESSION_PRESSURE",
+              "NEW_PAYEE"
+            ]
+          },
+          {
+            "event_id": 149947,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "item_purchase|on_call_legit",
+            "amount": 2234.22,
+            "entry": "qr_gallery",
+            "note_intent_sent": "none",
+            "on_call": 1,
+            "payee_first_time": 1,
+            "payee_age_days": 1397.2,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 7.65,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "SESSION_PRESSURE",
+              "AMOUNT_UNUSUAL",
+              "NEW_PAYEE"
+            ]
+          },
+          {
+            "event_id": 150316,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "item_purchase|on_call_legit",
+            "amount": 6606.03,
+            "entry": "typed_vpa",
+            "note_intent_sent": "none",
+            "on_call": 1,
+            "payee_first_time": 1,
+            "payee_age_days": 34.7,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 17.93,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "SESSION_PRESSURE",
+              "AMOUNT_UNUSUAL",
+              "NEW_PAYEE"
+            ]
+          }
+        ]
+      },
+      {
+        "tag": "remote_app_user",
+        "false_alarms": 555,
+        "share_of_false_alarms": 0.029590531030070377,
+        "false_alarm_rate_in_tag": 0.13000702740688685,
+        "examples": [
+          {
+            "event_id": 150097,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "on_call_legit|remote_app_user",
+            "amount": 622.69,
+            "entry": "qr_scan",
+            "note_intent_sent": "none",
+            "on_call": 1,
+            "payee_first_time": 1,
+            "payee_age_days": 2152.5,
+            "fan_in_24h": 6,
+            "reports": 0,
+            "amount_ratio": 2.45,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "REMOTE_APP_PRESENT",
+              "NEW_PAYEE"
+            ]
+          },
+          {
+            "event_id": 150243,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "remote_app_user",
+            "amount": 371.44,
+            "entry": "typed_vpa",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 711.2,
+            "fan_in_24h": 0,
+            "reports": 0,
+            "amount_ratio": 1.19,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "REMOTE_APP_PRESENT",
+              "SESSION_PRESSURE",
+              "REPEAT_PAYEE_24H"
+            ]
+          },
+          {
+            "event_id": 150477,
+            "scenario": "legit",
+            "variant": "",
+            "tags": "remote_app_user",
+            "amount": 59.16,
+            "entry": "typed_vpa",
+            "note_intent_sent": "none",
+            "on_call": 0,
+            "payee_first_time": 0,
+            "payee_age_days": 7658.0,
+            "fan_in_24h": 20,
+            "reports": 0,
+            "amount_ratio": 0.2,
+            "deciding_rule": "amber_threshold_met",
+            "tier": "amber",
+            "model_reasons": [
+              "FAN_IN_24H",
+              "REMOTE_APP_PRESENT",
+              "SESSION_PRESSURE"
+            ]
+          }
+        ]
+      }
+    ],
+    "expected_cases": {
+      "rent to a new landlord while on a call": {
+        "payments": 14,
+        "false_alarm_rate": 1.0
+      },
+      "screen-reader users": {
+        "payments": 9535,
+        "false_alarm_rate": 0.040692186680650236
+      },
+      "all legit payments": {
+        "payments": 447984,
+        "false_alarm_rate": 0.04186756669881067
+      },
+      "scams with no call, unreported payee, normal amount": {
+        "payments": 6,
+        "recall": 0.3333333333333333
+      }
+    },
+    "deciding_rule_of_missed_scams": {
+      "amber_cap_downgraded_to_green": 9,
+      "green_below_threshold": 4,
+      "eligibility_gate_silent_pass": 1
+    }
+  },
+  "unseen_scam_types_recall": {
+    "digital_arrest": 1.0,
+    "customer_care": 0.6521739130434783,
+    "kyc_link": 0.7142857142857143,
+    "task_scam": 0.6491228070175439,
+    "investment": 0.9130434782608695,
+    "fake_qr": 0.6666666666666666,
+    "otp_takeover": 1.0
+  }
+}

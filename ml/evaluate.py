@@ -201,11 +201,13 @@ def log_holdout_run(res, path):
             "|---|---|---|---|---|---|---|---|---|\n")
     pct = lambda v: "n/a" if v is None else f"{100 * v:.1f}%"
     m, p = res["model_only"], res["model_plus_policy"]
-    LOG.write_text(LOG.read_text() + (
-        f"| {res['holdout_run']} | {res['date']} | {res['git_commit'][:10]} | {res['model_sha256'][:12]} | "
-        f"{res['thresholds_sha256'][:12]} | {pct(m['warning']['precision'])} / {pct(m['warning']['recall'])} | "
-        f"{pct(p['warning']['precision'])} / {pct(p['warning']['recall'])} / {p['warning']['alerts_per_1000']:.2f} | "
-        f"{pct(p['red']['precision'])} / {pct(p['red']['recall'])} | `{path.relative_to(ROOT)}` |\n"))
+    row = (f"| {res['holdout_run']} | {res['date']} | {res['git_commit'][:10]} | {res['model_sha256'][:12]} | "
+           f"{res['thresholds_sha256'][:12]} | {pct(m['warning']['precision'])} / {pct(m['warning']['recall'])} | "
+           f"{pct(p['warning']['precision'])} / {pct(p['warning']['recall'])} / {p['warning']['alerts_per_1000']:.2f} | "
+           f"{pct(p['red']['precision'])} / {pct(p['red']['recall'])} | `{path.relative_to(ROOT)}` |\n")
+    lines = LOG.read_text().splitlines(keepends=True)
+    lines.insert(max(i for i, ln in enumerate(lines) if ln.startswith("|")) + 1, row)  # end of the table
+    LOG.write_text("".join(lines))
 
 
 def main():
