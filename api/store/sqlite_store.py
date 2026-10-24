@@ -358,24 +358,6 @@ class SQLiteFeatureStore(BaseFeatureStore):
 
         return count, history_days
 
-    def get_user_amber_count_in_window(self, user_id: str, days: int = 7) -> int:
-        clean_user = user_id.strip().lower()
-        cutoff_ms = int(time.time() * 1000) - (days * 86_400_000)
-        cutoff_iso = datetime.fromtimestamp(cutoff_ms / 1000.0, tz=timezone.utc).isoformat()
-
-        with get_db(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT COUNT(*) as cnt
-                FROM cases
-                WHERE user_id = ? AND tier = 'amber' AND created_at >= ?;
-                """,
-                (clean_user, cutoff_iso)
-            )
-            row = cursor.fetchone()
-            return int(row["cnt"]) if row else 0
-
     def record_case(
         self,
         case_id: str,

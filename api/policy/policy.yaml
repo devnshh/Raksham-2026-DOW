@@ -12,8 +12,6 @@ family_thresholds:
   C: 0.35  # Context (bad link, suspicious note, deep link)
   D: 0.35  # User Baseline (amount_ratio >= 4.0 or escalation_ratio >= 2.0)
 
-# Alert Fatigue Controls
-amber_cap_max_per_7_days: 1
 
 # Trusted Payee Rule: 3+ payments over 30+ days skips scoring unless Family A fires
 trusted_payee:

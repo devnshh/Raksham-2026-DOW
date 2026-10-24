@@ -65,7 +65,7 @@
 
   <section aria-labelledby="metrics-h">
     <h2 id="metrics-h">Model only, and model plus policy</h2>
-    <p class="sub">Every payment is scored by the deployed model with only what the phone and server have at payment time, then replayed through the production policy (eligibility gate, two-of-four rule, weekly warning cap) in time order per user. A warning is any amber or red screen.</p>
+    <p class="sub">Every payment is scored by the deployed model with only what the phone and server have at payment time, then replayed through the production policy (eligibility gate, warning rules, red corroboration, trusted payees) in time order per user. The holdout table shows the policy of the run it reports. A warning is any amber or red screen.</p>
     <div class="wrap"><table id="metrics"></table></div>
   </section>
 

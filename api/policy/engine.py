@@ -106,7 +106,8 @@ class PolicyEngine:
         """Calculates family contributions from features for 2-of-4 corroboration."""
         fam_a = 0.0
         if features.get("on_call", False):
-            fam_a += 0.45
+            # A call with a saved contact (family, a known shop) is weak evidence on its own.
+            fam_a += 0.15 if features.get("caller_in_contacts") else 0.45
         if features.get("screen_shared", False):
             fam_a += 0.50
         remote_present = features.get("remote_app_present", False)
@@ -208,7 +209,6 @@ class PolicyEngine:
                 "C": 0.35,
                 "D": 0.35
             },
-            "amber_cap_max_per_7_days": 1,
             "trusted_payee": {
                 "min_payments": 3,
                 "min_history_days": 30
@@ -244,7 +244,6 @@ class PolicyEngine:
         self,
         features: Dict[str, Any],
         is_confirmed_scam_payee: bool = False,
-        user_amber_count_7d: int = 0,
         trusted_payee_history: Optional[Tuple[int, int]] = None,  # (payment_count, history_days)
         questionnaire_answers: Optional[Dict[str, Any]] = None,
         pair_trust: Optional[str] = None,  # "user" ("This was me" on an amber) or "analyst" (appeal accepted)
@@ -483,13 +482,13 @@ class PolicyEngine:
             reasons.insert(0, "REMOTE_APP_PRESENT")
 
         is_red_candidate = (fusion_score_val >= red_thresh) or (tier_hint == "red")
-        # A single weak family (e.g. only "on a call") is not enough to warn: amber needs the
-        # model's amber threshold, two corroborating families, or a strong coercion signal.
+        # Amber needs the model's amber threshold or a strong coercion signal. Two families firing
+        # is no longer enough on its own: on the validation world (seed 33) that rule warned on
+        # about 15,900 genuine payments and caught 1 scam the model missed (ml/eval_log.md).
         has_strong_signal = strong_coercion(features)
         is_amber_candidate = (
             (fusion_score_val >= amber_thresh)
             or (tier_hint in ("amber", "red"))
-            or (elevated_families_count >= 2)
             or has_strong_signal
         )
 
@@ -506,18 +505,9 @@ class PolicyEngine:
             hold_minutes = 0
             applied_rules.append("green_below_threshold")
 
-        # ---------------------------------------------------------------------
-        # Step 6: Per-user Amber Cap (Max 1 amber per 7 days)
-        # The cap only silences WEAK ambers (one family, no strong coercion).
-        # Corroborated ambers (2+ families) and screen-share / new remote-app
-        # ambers are always shown; RED is never touched.
-        # ---------------------------------------------------------------------
-        max_amber_7d = int(self.config.get("amber_cap_max_per_7_days", 1))
-        is_weak_amber = elevated_families_count <= 1 and not has_strong_signal
-        if tier == "amber" and is_weak_amber and user_amber_count_7d >= max_amber_7d:
-            tier = "green"
-            applied_rules.append("amber_cap_downgraded_to_green")
-            reasons = []
+        # (There is no weekly warning cap any more. Once ambers come only from the model or from
+        # screen sharing / remote access, the cap's only effect was hiding real warnings on the later
+        # payments of a multi-step scam.)
 
         # ---------------------------------------------------------------------
         # Step 6b: Vouched-for payee (trust already dropped if the payee was reported since, or is

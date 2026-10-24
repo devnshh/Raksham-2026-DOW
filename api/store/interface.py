@@ -57,11 +57,6 @@ class BaseFeatureStore(ABC):
         pass
 
     @abstractmethod
-    def get_user_amber_count_in_window(self, user_id: str, days: int = 7) -> int:
-        """Returns number of amber cases recorded for user in the given day window."""
-        pass
-
-    @abstractmethod
     def record_case(
         self,
         case_id: str,

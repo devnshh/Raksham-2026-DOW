@@ -22,13 +22,19 @@ def _assess(client, user, payee, amount, **session):
     return resp.json()
 
 
-def test_amber_cap_never_silences_a_multi_family_amber(policy_engine: PolicyEngine):
-    # On a call (A) + first-time payee at 8x the usual amount (D): two families agree.
+def test_two_families_alone_do_not_force_a_warning(policy_engine: PolicyEngine):
+    # On a call (A) + first-time payee at 8x the usual amount (D): two families fire, but the score is
+    # below the amber threshold. The old "two families means amber" rule is gone (ml/eval_log.md, run 2).
     features = {"on_call": True, "payee_first_time": True, "amount_ratio": 8.0, "amount_z": 3.0}
-    decision = policy_engine.evaluate(features, user_amber_count_7d=5)
+    decision = policy_engine.evaluate(features)
     assert decision.elevated_families_count >= 2
-    assert decision.tier in ("amber", "red")
-    assert "amber_cap_downgraded_to_green" not in decision.applied_rules
+    assert decision.tier == "green"
+
+
+def test_a_call_with_a_saved_contact_is_weak_evidence(policy_engine: PolicyEngine):
+    unknown = policy_engine.compute_family_contributions({"on_call": True})
+    known = policy_engine.compute_family_contributions({"on_call": True, "caller_in_contacts": True})
+    assert unknown["A"] >= 0.40 > known["A"]
 
 
 def test_risk_check_is_not_a_payment_and_completion_is(client: TestClient, test_db_path: str):

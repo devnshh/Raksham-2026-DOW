@@ -229,10 +229,9 @@ def test_corroboration_rule_three_families_triggers_red(policy_engine: PolicyEng
     assert decision.elevated_families_count >= 3
 
 
-def test_amber_cap_downgrades_second_amber_in_7d(policy_engine: PolicyEngine):
-    """Rule 6: Amber Cap - a 2nd WEAK (single-family) amber in 7 days is downgraded to GREEN.
-    (Changed: the cap now only applies to single-family ambers; see test_fixes.py for the
-    multi-family case it must never silence.)"""
+def test_repeat_warnings_are_not_silenced(policy_engine: PolicyEngine):
+    """There is no weekly warning cap: a single-family amber the scorer raises is always shown.
+    (The cap used to turn it green; that hid the later payments of multi-step scams.)"""
     features = {
         "on_call": False,
         "screen_shared": False,
@@ -244,15 +243,13 @@ def test_amber_cap_downgrades_second_amber_in_7d(policy_engine: PolicyEngine):
         "lookalike_score": 0.0,
         "amount_ratio": 1.0
     }
-    # User already has 1 amber warning in last 7 days
-    decision = policy_engine.evaluate(features, user_amber_count_7d=1)
-    assert decision.tier == "green"
-    assert decision.template_id == "green_pass_v1"
-    assert "amber_cap_downgraded_to_green" in decision.applied_rules
+    decision = policy_engine.evaluate(features)
+    assert decision.tier == "amber"
+    assert decision.elevated_families_count == 1
 
 
-def test_amber_cap_never_downgrades_red(policy_engine: PolicyEngine):
-    """Rule 6: Amber Cap MUST NEVER downgrade a RED tier (RED always intervenes)."""
+def test_red_always_intervenes(policy_engine: PolicyEngine):
+    """RED is never downgraded."""
     features = {
         "on_call": True,
         "screen_shared": True,
@@ -261,8 +258,7 @@ def test_amber_cap_never_downgrades_red(policy_engine: PolicyEngine):
         "lookalike_score": 0.85,
         "amount_ratio": 5.0
     }
-    # Even if user already had 5 warnings in last 7 days, RED is never silenced!
-    decision = policy_engine.evaluate(features, user_amber_count_7d=5)
+    decision = policy_engine.evaluate(features)
     assert decision.tier == "red"
     assert decision.hold_minutes == 30
     assert "amber_cap_downgraded_to_green" not in decision.applied_rules

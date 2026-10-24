@@ -7,6 +7,9 @@ from pydantic import BaseModel, Field, model_validator
 class SessionSignals(BaseModel):
     """Raw device and session dynamics sent by the client SDK."""
     on_call: bool = False
+    # On a call with someone saved in the user's contacts. None means not measured (no permission,
+    # an outgoing or internet call), which scores like an unknown caller.
+    caller_in_contacts: Optional[bool] = None
     screen_shared: bool = False
     remote_app_present: bool = False
     remote_app_new: bool = False

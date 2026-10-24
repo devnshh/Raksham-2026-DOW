@@ -2,7 +2,7 @@
 Reset the demo database to a clean, freshly seeded state.
 
 Run this right before every demo: seeded mule fan-in ages out after 24 hours, and a
-previous run's warnings count towards the per-user weekly amber cap.
+previous run's payments, appeals and holds change later checks.
 
     python scripts/reset_demo_db.py            # uses SATARK_DB_PATH or api/satark.db
     python scripts/reset_demo_db.py --db x.db

@@ -48,7 +48,7 @@ def get_policy_engine() -> PolicyEngine:
 
 
 REQUIRED_NON_LINK_FEATURES = [
-    "on_call", "screen_shared", "remote_app_present", "remote_app_new", "app_switches",
+    "on_call", "caller_in_contacts", "screen_shared", "remote_app_present", "remote_app_new", "app_switches",
     "typing_z", "pause_z", "pin_time_z", "device_new", "failed_auth",
     "payee_first_time", "payee_age_days", "payee_verified", "payee_new_payers_24h", "payee_reports_prior", "lookalike_score",
     "amount", "amount_ratio", "amount_z", "amount_vs_max", "hour", "hour_familiarity",
@@ -112,9 +112,6 @@ def assess_risk(
     # 4. Check historical relationship with payee
     trusted_history = store.get_trusted_payee_history(user_id, payee_vpa)
 
-    # 5. Check user's 7-day Amber warning count
-    user_amber_count = store.get_user_amber_count_in_window(user_id, days=7)
-
     # 6. Note intent only; raw note text is never stored or scored
     note_intent = resolve_note_intent(req.context.note_intent, req.context.note_text)
 
@@ -141,6 +138,8 @@ def assess_risk(
     feature_vector: Dict[str, Any] = {
         # Session Coercion
         "on_call": bool(req.session.on_call),
+        # Only a call with a saved contact counts; not measured (None) is treated as an unknown caller.
+        "caller_in_contacts": bool(req.session.on_call and req.session.caller_in_contacts is True),
         "screen_shared": bool(req.session.screen_shared),
         "remote_app_present": bool(req.session.remote_app_present),
         "remote_app_new": bool(req.session.remote_app_new),
@@ -222,7 +221,6 @@ def assess_risk(
         decision = policy.evaluate(
             features=feature_vector,
             is_confirmed_scam_payee=payee_profile["is_confirmed_scam"],
-            user_amber_count_7d=user_amber_count,
             trusted_payee_history=trusted_history,
             questionnaire_answers=req.questionnaire_answers,
             pair_trust=store.get_pair_trust(user_id, payee_vpa, payee_profile["payee_reports_prior"])

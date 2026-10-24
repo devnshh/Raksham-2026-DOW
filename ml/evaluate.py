@@ -14,7 +14,6 @@ import json
 import os
 import subprocess
 import sys
-from collections import defaultdict, deque
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -53,28 +52,22 @@ def model_tier(s, thr):
 
 def replay_policy(df, inputs, intents, scores, thr):
     """Production tier and deciding rule per row, in time order. Every simulated payment counts as completed
-    (the simulator's later features assume it happened), so it feeds trusted-payee history; every amber
-    shown counts towards that user's 7-day cap, as cases do in production."""
+    (the simulator's later features assume it happened), so it feeds trusted-payee history."""
     replay = _Replay(scores, thr)
     engine = PolicyEngine(POLICY_FILE_PATH, scorer=replay)
     recs = inputs.to_dict("records")
     ts, users, payees = df.ts.to_numpy(), df.user_id.to_numpy(), df.payee_id.to_numpy()
-    history, ambers = {}, defaultdict(deque)
+    history = {}
     tiers, rules = np.empty(len(df), dtype=object), np.empty(len(df), dtype=object)
     for i in np.lexsort((users, ts)):
         f = {k: (None if isinstance(v, float) and np.isnan(v) else v) for k, v in recs[i].items()}
         f["note_intent"] = intents[i]
         key = (users[i], payees[i])
         h = history.get(key)
-        cap = ambers[users[i]]
-        while cap and cap[0] < ts[i] - 7 * DAY:
-            cap.popleft()
         replay.i = i
-        d = engine.evaluate(f, is_confirmed_scam_payee=False, user_amber_count_7d=len(cap),
+        d = engine.evaluate(f, is_confirmed_scam_payee=False,
                             trusted_payee_history=(h[0], int((h[2] - h[1]) / DAY)) if h else None)
         tiers[i], rules[i] = d.tier, d.applied_rules[-1]
-        if d.tier == "amber":
-            cap.append(ts[i])
         history[key] = (h[0] + 1, h[1], ts[i]) if h else (1, ts[i], ts[i])
     return tiers, rules
 

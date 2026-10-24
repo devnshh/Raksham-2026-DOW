@@ -66,7 +66,7 @@ class StubScorer(BaseScorer):
         # ---------------------------------------------------------------------
         fam_a = 0.0
         if features.get("on_call", False):
-            fam_a += 0.45
+            fam_a += 0.15 if features.get("caller_in_contacts") else 0.45
             reasons.append("ON_CALL")
 
         if features.get("screen_shared", False):
