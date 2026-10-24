@@ -495,6 +495,12 @@ fun PaymentAmountScreen(
                     },
                     onCancel = {
                         showAmberWarning = false
+                    },
+                    onThisWasMe = {
+                        val caseId = currentDecision!!.caseId
+                        coroutineScope.launch { RiskGate.markThisWasMe(caseId) }
+                        showAmberWarning = false
+                        showPinSheet = true
                     }
                 )
             }

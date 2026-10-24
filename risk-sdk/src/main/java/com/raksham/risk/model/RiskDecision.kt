@@ -6,5 +6,7 @@ data class RiskDecision(
     val templateId: String,
     val holdMinutes: Int,
     val caseId: String,
-    val isCheckUnavailable: Boolean = false
+    val isCheckUnavailable: Boolean = false,
+    /** A call, screen share or remote-access app was active: "This was me" is not offered (or accepted). */
+    val sessionUnderPressure: Boolean = false
 )

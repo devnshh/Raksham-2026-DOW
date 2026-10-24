@@ -52,6 +52,9 @@ internal data class QuestionnairePayload(
 )
 
 @Serializable
+internal data class AppealPayload(val user_ref: String)
+
+@Serializable
 internal data class PaymentCompletePayload(
     val case_id: String,
     val user_ref: String,
@@ -146,6 +149,13 @@ internal class RiskApiClient(
         )
         val (code, text) = post(path, body, 800, 800)
         if (code in 200..299) json.decodeFromString<AssessmentNetworkResponse>(text) else null
+    }
+
+    /** "This was me" (amber) or "Report a false alarm" (red, decline): action is "appeal" or "false-alarm". */
+    suspend fun dispute(caseId: String, userRef: String, action: String): Boolean = withContext(Dispatchers.IO) {
+        val path = "/v1/risk/${URLEncoder.encode(caseId, "UTF-8")}/$action"
+        val (code, _) = post(path, json.encodeToString(AppealPayload(userRef)), 800, 800)
+        code in 200..299
     }
 
     /** Tells the server the PIN succeeded, so the payment updates baselines and fan-in. */

@@ -89,7 +89,8 @@ fun AmberWarningDialog(
     payeeName: String = "",
     amount: Double = 0.0,
     onContinue: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onThisWasMe: () -> Unit = onContinue
 ) {
     val template = TemplateRegistry.resolve(decision.templateId)
     val reasonsToShow = decision.reasons.take(3)
@@ -169,6 +170,20 @@ fun AmberWarningDialog(
                     .semantics { contentDescription = "Continue anyway" }
             ) {
                 BilingualLabel(en = "Continue anyway", hi = "फिर भी जारी रखें")
+            }
+
+            // "This was me": continues and stops later ambers for this payee. Not offered when the
+            // check could not run, or during a call or remote session (a scammer could coach the tap).
+            if (!decision.isCheckUnavailable && !decision.sessionUnderPressure) {
+                TextButton(
+                    onClick = onThisWasMe,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = "This was me, I know this payee. Continue" }
+                ) {
+                    BilingualLabel(en = "This was me, I know this payee", hi = "यह मैं हूँ, मैं इन्हें जानता हूँ")
+                }
             }
         }
     }

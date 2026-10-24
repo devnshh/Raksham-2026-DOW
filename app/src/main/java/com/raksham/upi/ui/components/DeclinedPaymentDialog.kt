@@ -10,15 +10,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.raksham.risk.RiskGate
 import com.raksham.risk.model.RiskDecision
+import kotlinx.coroutines.launch
 
 /**
  * Shown only when an analyst has confirmed the payee as a scam account (tier DECLINE).
@@ -75,11 +79,12 @@ fun DeclinedPaymentDialog(
                     ReasonList(reasons = decision.reasons, iconTint = colors.error)
                 }
                 BilingualText(
-                    en = "If you were asked to pay this account, it is a scam. If you think this is a mistake, contact support with case ${decision.caseId} to appeal. A human reviews every appeal.",
-                    hi = "अगर किसी ने आपसे इस खाते में पैसे भेजने को कहा है, तो यह धोखाधड़ी है। गलती लगे तो केस ${decision.caseId} के साथ सहायता से संपर्क करें। हर अपील की समीक्षा इंसान करता है।",
+                    en = "If you were asked to pay this account, it is a scam. If you think this is a mistake, report a false alarm: a person at the bank reviews case ${decision.caseId}.",
+                    hi = "अगर किसी ने आपसे इस खाते में पैसे भेजने को कहा है, तो यह धोखाधड़ी है। गलती लगे तो गलत चेतावनी की शिकायत करें: बैंक का कर्मचारी केस ${decision.caseId} की समीक्षा करेगा।",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
+                ReportFalseAlarmButton(caseId = decision.caseId)
             }
         },
         confirmButton = {
@@ -103,4 +108,41 @@ fun DeclinedPaymentDialog(
             }
         }
     )
+}
+
+/**
+ * Red pause and decline: the only appeal is a report an analyst reviews. It changes nothing on the
+ * spot, so a scammer coaching the user gains nothing by asking them to tap it.
+ */
+@Composable
+internal fun ReportFalseAlarmButton(caseId: String, modifier: Modifier = Modifier) {
+    val scope = rememberCoroutineScope()
+    var sent by remember(caseId) { mutableStateOf<Boolean?>(null) }
+    if (sent == true) {
+        BilingualText(
+            en = "Sent to the bank for review. Nothing changes until an analyst checks it.",
+            hi = "बैंक को समीक्षा के लिए भेजा गया। विश्लेषक की जांच तक कुछ नहीं बदलेगा।",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier.semantics { liveRegion = LiveRegionMode.Polite }
+        )
+        return
+    }
+    Column(modifier = modifier) {
+        TextButton(
+            onClick = { scope.launch { sent = RiskGate.reportFalseAlarm(caseId) } },
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        ) {
+            BilingualLabel(en = "Report a false alarm", hi = "गलत चेतावनी की शिकायत करें")
+        }
+        if (sent == false) {
+            BilingualText(
+                en = "Could not send. Check the connection and try again.",
+                hi = "भेजा नहीं जा सका। कनेक्शन जांचकर फिर से कोशिश करें।",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            )
+        }
+    }
 }

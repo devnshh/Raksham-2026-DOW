@@ -138,4 +138,4 @@ Android unit tests (with Gradle JDK 17):
 - Screen sharing is detected only as an extra display (casting or mirroring); `device_new` and failed PIN attempts are not measured in this demo.
 - The amber warning needs a live call detected by the phone; on an emulator use a real device or the Simulation Lab.
 - QR scanning is simulated (sample codes, no camera). The Simulation Lab scores scenarios but does not open the warning screens.
-- One demo user (`raksham@oksbi`) is hard-coded in the app.
+- One demo user (`raksham@oksbi`) is hard-coded in the app, and the app endpoints trust the `user_ref` they are sent: there is no user sign-in, so in this demo anyone who knows a case ID and user ID can appeal that case.

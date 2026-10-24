@@ -453,6 +453,9 @@ fun RedSmartPauseDialog(
                                 textAlign = TextAlign.Center
                             )
                         }
+
+                        // 5. Not a scam: goes to an analyst, changes nothing now
+                        ReportFalseAlarmButton(caseId = decision.caseId, modifier = Modifier.riseIn(entered, 4))
                     }
                 }
             }

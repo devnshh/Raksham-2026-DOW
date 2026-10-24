@@ -70,7 +70,9 @@ object RiskGate {
             templateId = response.template_id,
             holdMinutes = response.hold_minutes,
             caseId = response.case_id,
-            isCheckUnavailable = isUnavailable
+            isCheckUnavailable = isUnavailable,
+            sessionUnderPressure = signals.on_call || signals.screen_shared ||
+                signals.remote_app_present || signals.remote_app_new
         )
     }
 
@@ -79,6 +81,22 @@ object RiskGate {
         if (caseId.startsWith("local-offline")) return false
         return try {
             apiClient.sendQuestionnaireAnswer(caseId, lastUserRef, isAnyoneGuidingYou) != null
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /** "This was me" on an amber warning: later ambers for this payee are not shown (except during a call).
+     *  The server refuses it when this warning itself came during a call or with a remote-access app. */
+    suspend fun markThisWasMe(caseId: String): Boolean = dispute(caseId, "appeal")
+
+    /** Red or decline: sends the case to an analyst. Nothing changes for the user until they accept it. */
+    suspend fun reportFalseAlarm(caseId: String): Boolean = dispute(caseId, "false-alarm")
+
+    private suspend fun dispute(caseId: String, action: String): Boolean {
+        if (caseId.isBlank() || caseId.startsWith("local-offline")) return false
+        return try {
+            apiClient.dispute(caseId, lastUserRef, action)
         } catch (e: Exception) {
             false
         }
