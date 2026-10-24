@@ -1,6 +1,8 @@
 package com.raksham.upi.ui.screens
 
 import com.raksham.upi.ui.formatAmount
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -26,10 +28,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.raksham.risk.RiskGate
+import com.raksham.risk.session.CallerCheck
 import com.raksham.upi.simulation.*
 import com.raksham.upi.ui.theme.Motion
 import kotlinx.coroutines.delay
@@ -189,6 +193,9 @@ fun SimulationLabScreen(
                 }
             }
 
+            item { LabSectionHeader("Caller check") }
+            item { CallerCheckRow() }
+
             item { LabSectionHeader("Custom scenario") }
             item { CustomScenarioCard(onOpen = onOpenCustom) }
 
@@ -329,5 +336,29 @@ private fun StepItem(
             style = MaterialTheme.typography.labelMedium,
             color = if (isActive || isDone) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+/** The three permissions the caller check needs (who is calling, looked up in contacts). */
+@Composable
+private fun CallerCheckRow() {
+    val context = LocalContext.current
+    var granted by remember { mutableStateOf(CallerCheck.hasPermissions(context)) }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted = CallerCheck.hasPermissions(context) }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            if (granted) "On. Incoming callers are checked against contacts saved 7 or more days ago."
+            else "Off. Calls count as from an unknown caller.",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        if (!granted) {
+            TextButton(onClick = { launcher.launch(CallerCheck.PERMISSIONS) }) { Text("Allow") }
+        }
     }
 }

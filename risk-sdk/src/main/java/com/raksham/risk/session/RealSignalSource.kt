@@ -8,6 +8,7 @@ import android.view.Display
 /**
  * Reads real session signals on the phone. Only derived values leave the device.
  *  - on_call: AudioManager mode (covers phone and VoIP calls, no call-log permission).
+ *  - caller_in_contacts: whether an incoming caller is a contact saved 7+ days ago (CallerCheck).
  *  - screen_shared: an extra display is attached (casting / mirroring). This is a proxy: a
  *    screen-share app that records without a second display is not visible here before Android 15.
  *  - remote_app_present / remote_app_new: known remote-access apps (needs <queries> in the manifest);
@@ -51,6 +52,7 @@ class RealSignalSource(private val context: Context? = null) : SessionSignalSour
 
         return SessionSignals(
             on_call = onCall,
+            caller_in_contacts = if (onCall && ctx != null) CallerCheck.currentCall(ctx) else null,
             screen_shared = extraDisplay,
             remote_app_present = installTimes.isNotEmpty(),
             remote_app_new = installTimes.any { now - it < DAY_MS },

@@ -30,6 +30,7 @@ fun CustomScenarioCard(
     var amountText by remember { mutableStateOf("") }
     var channel by remember { mutableStateOf(CHANNELS.first().first) }
     var onCall by remember { mutableStateOf(false) }
+    var callerSaved by remember { mutableStateOf(false) }
     var screenShared by remember { mutableStateOf(false) }
     var remoteNew by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf("") }
@@ -70,6 +71,7 @@ fun CustomScenarioCard(
             }
         }
         SignalSwitch("On a call", onCall) { onCall = it }
+        if (onCall) SignalSwitch("Caller is a saved contact", callerSaved) { callerSaved = it }
         SignalSwitch("Screen shared", screenShared) { screenShared = it }
         SignalSwitch("New remote-access app", remoteNew) { remoteNew = it }
         OutlinedTextField(
@@ -88,6 +90,7 @@ fun CustomScenarioCard(
                     contact, amount!!, channel, note,
                     SessionSignals(
                         on_call = onCall,
+                        caller_in_contacts = if (onCall) callerSaved else null,
                         screen_shared = screenShared,
                         remote_app_present = remoteNew,
                         remote_app_new = remoteNew

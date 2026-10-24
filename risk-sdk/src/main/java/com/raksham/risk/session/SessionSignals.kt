@@ -10,6 +10,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SessionSignals(
     val on_call: Boolean = false,
+    /** On a call with a contact saved at least 7 days ago; null = not measured (see CallerCheck). */
+    val caller_in_contacts: Boolean? = null,
     val screen_shared: Boolean = false,
     val remote_app_present: Boolean = false,
     val remote_app_new: Boolean = false,
