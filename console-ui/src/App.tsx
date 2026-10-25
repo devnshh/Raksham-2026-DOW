@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CaseView, type Detail } from "@/components/console/CaseView";
-import { Activity, Metrics } from "@/components/console/Overview";
+import { Activity, Insights, Metrics } from "@/components/console/Overview";
 import { Sidebar, type TierFilter, type View } from "@/components/console/Sidebar";
 import { Toaster, useToast } from "@/components/console/ui";
 import { api, getKey, setKey, Unauthorized, type CaseRow, type PayeeView, type PayerAmounts, type Summary } from "@/lib/api";
@@ -26,12 +26,15 @@ function Console() {
   const [query, setQuery] = useState("");
   const [tierFilter, setTierFilter] = useState<TierFilter | null>(null);
   const [selectedId, setSelectedId] = useState("");
+  // Two pages: the 24-hour overview, and the case workbench. Picking a case opens the workbench.
+  const [page, setPage] = useState<"overview" | "case">("overview");
   const [detail, setDetail] = useState<Detail | null>(null);
   const [result, setResult] = useState<{ id: string; text: string; err?: boolean } | null>(null);
   const [analyst, setAnalyst] = useState(() => { try { return localStorage.getItem(ANALYST) || ""; } catch { return ""; } });
   const [now, setNow] = useState(Date.now());
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [points, setPoints] = useState<{ time: number; value: number }[]>([]);
+  const [confirmReset, setConfirmReset] = useState(false);
   const seen = useRef<Set<string> | null>(null);
   const lastPick = useRef(0);
   const selectedRef = useRef("");
@@ -49,8 +52,9 @@ function Console() {
     } catch { /* the next poll retries */ }
   }, []);
 
-  const select = useCallback((id: string, byUser = true) => {
+  const select = useCallback((id: string, byUser = true, open = true) => {
     if (byUser) lastPick.current = Date.now();
+    if (open) setPage("case");
     if (id === selectedRef.current) return;
     setSelectedId(id); setDetail(null); setResult(null);
     selectedRef.current = id;
@@ -77,7 +81,7 @@ function Console() {
       }
       // A new red pause or decline opens on its own unless the analyst picked a case in the last 20 s.
       if (alarming.length && Date.now() - lastPick.current > 20000) select(alarming[0].case_id, false);
-      else if (first && !selectedRef.current && list.length) select((list.find((c) => needsAction(c)) ?? list[0]).case_id, false);
+      else if (first && !selectedRef.current && list.length) select((list.find((c) => needsAction(c)) ?? list[0]).case_id, false, false);
       else if (selectedRef.current) void loadDetail(selectedRef.current);
     } catch (e) {
       if (e instanceof Unauthorized) { setNeedKey(true); setKeyError("That key was not accepted. Check the start script output."); }
@@ -126,6 +130,20 @@ function Console() {
     else { try { localStorage.setItem(ANALYST, id); } catch { /* private mode */ } }
     return id;
   };
+  const resetDemo = async () => {
+    try {
+      await api("/v1/console/reset", {});
+    } catch (e) {
+      if (!(e instanceof Unauthorized)) toast({ kind: "alert", title: "Reset failed", body: (e as Error).message });
+      return;
+    }
+    // Start from a clean console too: no open case, filters or arrival history from before.
+    selectedRef.current = ""; seen.current = null;
+    setSelectedId(""); setDetail(null); setResult(null); setPage("overview");
+    setTierFilter(null); setQuery(""); setView("action"); setPoints([]); setFresh(new Set());
+    toast({ kind: "info", title: "Demo reset", body: "Every case, payment and hold was deleted and the demo data reseeded." });
+    await refresh();
+  };
   const run = async (path: string, body: object, ok: (r: Record<string, unknown>) => string) => {
     const id = needAnalyst(); if (!id || !detail) return;
     try {
@@ -158,6 +176,15 @@ function Console() {
           <b className="text-[15.5px] font-semibold tracking-[-.2px]">Satark analyst console</b>
           <span className="text-xs text-muted-foreground">Fraud operations · UPI risk checks</span>
         </div>
+        <nav className="ml-3 grid grid-cols-2 gap-1 rounded-[10px] border border-[#eef0f4] bg-[#f6f7f9] p-1" role="tablist" aria-label="Pages">
+          {([["overview", "Overview"], ["case", "Case"]] as const).map(([p, name]) => (
+            <button key={p} type="button" role="tab" aria-selected={page === p} onClick={() => setPage(p)}
+              className={cn("rounded-[7px] px-3.5 py-1 text-[13px] font-medium text-muted-foreground transition-all hover:text-[#475467]",
+                page === p && "bg-card text-foreground shadow-sm")}>
+              {name}{p === "case" && selectedId ? <span className="ml-1.5 font-mono text-[11.5px] text-muted-foreground">{selectedId}</span> : null}
+            </button>
+          ))}
+        </nav>
         <div className="flex-1" />
         <span className="inline-flex items-center gap-2 rounded-full border bg-[#fbfbfd] px-3 py-1.5 text-[12.5px] whitespace-nowrap text-[#475467]">
           <span className="relative grid size-2 place-items-center">
@@ -170,6 +197,12 @@ function Console() {
           <input id="analyst" value={analyst} onChange={(e) => setAnalyst(e.target.value)} placeholder="e.g. analyst_alpha" autoComplete="off"
             className="w-[150px] rounded-lg border bg-card px-2.5 py-1.5 text-foreground outline-none transition focus:border-primary focus:ring-[3px] focus:ring-primary/20" />
         </label>
+        {summary?.demo_reset && (
+          <button type="button" onClick={() => setConfirmReset(true)}
+            className="rounded-lg border border-[var(--risk-red-line)] bg-card px-2.5 py-1.5 text-[12.5px] font-medium text-[var(--risk-red-ink)] transition hover:bg-[var(--risk-red-soft)]">
+            Reset demo
+          </button>
+        )}
         <button type="button" onClick={() => { setKeyError(""); setNeedKey(true); }} className="px-1 text-[12.5px] font-medium text-primary">Change key</button>
       </header>
 
@@ -178,9 +211,12 @@ function Console() {
         fresh={fresh} now={now} updated={updated} />
 
       <main className="min-h-0 overflow-y-auto px-[22px] pt-[18px] pb-6">
-        {summary && <Metrics summary={summary} tierFilter={tierFilter} setTierFilter={(f) => { setTierFilter(f); setView("all"); }} />}
-        {summary && <Activity cases={cases} summary={summary} points={points} setTierFilter={(f) => { setTierFilter(f); setView("all"); }} />}
-        {!selectedId ? (
+        {page === "overview" ? (summary ? <>
+          <Metrics summary={summary} tierFilter={tierFilter} setTierFilter={(f) => { setTierFilter(f); setView("all"); }} />
+          <Activity cases={cases} summary={summary} points={points} setTierFilter={(f) => { setTierFilter(f); setView("all"); }} />
+          <Insights cases={cases} summary={summary} setTierFilter={(f) => { setTierFilter(f); setView("all"); }}
+            search={(q) => { setQuery(q); setView("all"); }} />
+        </> : null) : !selectedId ? (
           <div className="rounded-xl border bg-card px-8 py-16 text-center text-muted-foreground shadow-sm">
             <b className="mb-1.5 block text-base font-semibold text-foreground">Select a case</b>
             Pick a case on the left, or pay from the phone: new red pauses open here on their own.
@@ -196,7 +232,28 @@ function Console() {
         )}
       </main>
 
+      {confirmReset && <ResetDialog onCancel={() => setConfirmReset(false)} onConfirm={async () => { setConfirmReset(false); await resetDemo(); }} />}
       {needKey && <KeyDialog error={keyError} onSubmit={(k) => { setKey(k); setKeyError(""); setNeedKey(false); seen.current = null; }} />}
+    </div>
+  );
+}
+
+function ResetDialog({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[rgba(16,24,40,.38)] backdrop-blur-[3px]" onClick={onCancel}
+      onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }}>
+      <div role="alertdialog" aria-modal="true" aria-labelledby="reset-title" onClick={(e) => e.stopPropagation()}
+        className="w-[420px] animate-in fade-in zoom-in-95 rounded-2xl bg-card px-[26px] pt-[26px] pb-[22px] shadow-2xl duration-200">
+        <h2 id="reset-title" className="mb-1.5 text-lg font-semibold">Reset the demo?</h2>
+        <p className="mb-5 text-[13px] text-muted-foreground">
+          Deletes every case, payment, report, hold and the audit log, then reseeds the demo payees and history.
+          This cannot be undone.
+        </p>
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onCancel} autoFocus className="rounded-[9px] border bg-card px-4 py-2 text-[13px] font-medium hover:bg-[#f6f7f9]">Cancel</button>
+          <button type="button" onClick={onConfirm} className="rounded-[9px] bg-[var(--risk-red)] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#b0221a]">Reset everything</button>
+        </div>
+      </div>
     </div>
   );
 }

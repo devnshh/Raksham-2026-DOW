@@ -10,6 +10,8 @@ export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 export MODEL_SERVICE_KEY="${MODEL_SERVICE_KEY:-$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')}"
 export SATARK_ANALYST_KEY="${SATARK_ANALYST_KEY:-$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')}"
 echo "Analyst API key (X-API-Key): $SATARK_ANALYST_KEY"
+# Demo only: lets the analyst console's "Reset demo" button wipe and reseed the database.
+export SATARK_ALLOW_DEMO_RESET="${SATARK_ALLOW_DEMO_RESET:-1}"
 
 python3 -m uvicorn model_service.main:app --host 127.0.0.1 --port 8001 &
 MODEL_PID=$!

@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { Tier } from "@/lib/api";
 import { TIER } from "@/lib/format";
@@ -26,16 +27,31 @@ export function ScamBadge() {
   );
 }
 
-/** Hover help. The bubble is plain text: values from the server are never rendered as HTML. */
+/** Hover help. The bubble is plain text: values from the server are never rendered as HTML. It is drawn
+ *  on the page body at a fixed position, so overflow-hidden panels never clip it, and kept on screen. */
 export function Tip({ text, children, className, side = "top" }: { text: ReactNode; children: ReactNode; className?: string; side?: "top" | "bottom" }) {
+  const anchor = useRef<HTMLSpanElement>(null);
+  const bubble = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!open || !anchor.current || !bubble.current) return;
+    const a = anchor.current.getBoundingClientRect(), b = bubble.current.getBoundingClientRect(), gap = 6, edge = 8;
+    const above = a.top - gap - b.height, below = a.bottom + gap;
+    const top = side === "top" ? (above >= edge ? above : below) : (below + b.height <= innerHeight - edge ? below : above);
+    const left = Math.min(Math.max(edge, a.left + a.width / 2 - b.width / 2), innerWidth - edge - b.width);
+    setPos({ left, top });
+  }, [open, side, text]);
   return (
-    <span className={cn("group/tip relative", className)}>
+    <span ref={anchor} className={cn("relative", className)}
+      onMouseEnter={() => setOpen(true)} onMouseLeave={() => { setOpen(false); setPos(null); }}>
       {children}
-      <span role="tooltip"
-        className={cn("pointer-events-none absolute left-1/2 z-50 w-max max-w-[280px] -translate-x-1/2 rounded-md bg-[#101828] px-2.5 py-1.5 text-left text-xs leading-snug font-normal normal-case tracking-normal text-[#f2f4f7] opacity-0 shadow-lg transition duration-150 group-hover/tip:opacity-100",
-          side === "top" ? "bottom-[calc(100%+6px)] translate-y-1 group-hover/tip:translate-y-0" : "top-[calc(100%+6px)] -translate-y-1 group-hover/tip:translate-y-0")}>
-        {text}
-      </span>
+      {open && createPortal(
+        <span ref={bubble} role="tooltip" style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999 }}
+          className={cn("pointer-events-none fixed z-[100] w-max max-w-[280px] rounded-md bg-[#101828] px-2.5 py-1.5 text-left text-xs leading-snug font-normal normal-case tracking-normal text-[#f2f4f7] shadow-lg transition-opacity duration-150",
+            pos ? "opacity-100" : "opacity-0")}>
+          {text}
+        </span>, document.body)}
     </span>
   );
 }

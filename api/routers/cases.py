@@ -3,6 +3,7 @@ Case Management Endpoints: GET /v1/cases, GET /v1/cases/{id}
 """
 
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -121,7 +122,7 @@ def console_summary(
     now = datetime.now(timezone.utc)
     rows = store.cases_since(hours)
     hourly = [{"hour_start": (now - timedelta(hours=h)).replace(minute=0, second=0, microsecond=0).isoformat(),
-               "checks": 0, "warnings": 0, "red": 0} for h in range(11, -1, -1)]
+               "checks": 0, "warnings": 0, "red": 0, "decline": 0} for h in range(11, -1, -1)]
     totals = {"checks": len(rows), "green": 0, "amber": 0, "red": 0, "decline": 0, "holds_running": 0,
               "disputes_pending": 0, "money_held": 0.0, "payers": len({r["user_id"] for r in rows})}
     for r in rows:
@@ -137,6 +138,7 @@ def console_summary(
             slot["checks"] += 1
             slot["warnings"] += r["tier"] in ("amber", "red")
             slot["red"] += r["tier"] == "red"
+            slot["decline"] += r["tier"] == "decline"
     totals["warnings"] = totals["amber"] + totals["red"]
     try:
         thr = json.loads(Path(THRESHOLDS_PATH).read_text())
@@ -145,7 +147,23 @@ def console_summary(
         cutoffs = None
     return {"generated_at": now.isoformat(), "hours": hours, "totals": totals, "hourly": hourly, "cutoffs": cutoffs,
             "family_thresholds": policy.config.get("family_thresholds", {}),
-            "hold_minutes": int(policy.config.get("hold_minutes", 30))}
+            "hold_minutes": int(policy.config.get("hold_minutes", 30)), "demo_reset": _demo_reset_allowed()}
+
+
+def _demo_reset_allowed() -> bool:
+    """Only the demo start scripts turn this on, so a real deployment cannot be wiped from a browser."""
+    return os.getenv("SATARK_ALLOW_DEMO_RESET") == "1"
+
+
+@router.post("/console/reset")
+def reset_demo(store: SQLiteFeatureStore = Depends(get_feature_store)) -> Dict[str, Any]:
+    """Deletes every case, payment, report and hold, then reseeds the demo data (same as
+    scripts/reset_demo_db.py). Refused unless SATARK_ALLOW_DEMO_RESET=1."""
+    if not _demo_reset_allowed():
+        raise HTTPException(status_code=403, detail="Demo reset is turned off on this server")
+    from scripts.reset_demo_db import reset
+    reset(store.db_path)
+    return {"status": "reset"}
 
 
 @router.get("/users/{user_id}/amounts")

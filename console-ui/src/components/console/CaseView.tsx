@@ -114,7 +114,7 @@ export function CaseView({ detail, row, cases, summary, now, result, actions }: 
         <Tile tone={signals.length ? "red" : "green"} name="Warning signals" value={String(signals.length)} sub={signals.length ? signals.slice(0, 2).map(label).join(" · ") : "nothing fired"}
           tip={signals.length ? signals.map(label).join(", ") : "No warning signals"} />
         <Tile tone={reports || newPayers >= 5 ? "red" : ""} name="Payee risk" value={`${reports} report${reports === 1 ? "" : "s"}`} sub={`${newPayers} new payer${newPayers === 1 ? "" : "s"} in 24 h`}
-          spark={payeeHours.some((h) => h.v) ? <BarSparkline data={payeeHours} dataKey="v" height={30} color={reports || newPayers >= 5 ? "#c8271c" : "#6366f1"} barRadius={1.5} /> : null}
+          spark={payeeHours.some((h) => h.v) ? <BarSparkline data={payeeHours} dataKey="v" height={30} color={reports || newPayers >= 5 ? "#c8271c" : "#3e63dd"} barRadius={1.5} /> : null}
           tip="Scam reports, and how many people paid this account for the first time today" />
         <Tile tone={ratio && ratio >= 2 ? "amber" : ""} name="Amount vs usual" value={ratio ? `${ratio >= 10 ? Math.round(ratio) : ratio.toFixed(1)}×` : "first"}
           sub={amounts?.median ? `usual ${rupees(amounts.median)}` : "no history yet"}
@@ -179,7 +179,7 @@ export function CaseView({ detail, row, cases, summary, now, result, actions }: 
             <Stat k="This payment" v={rupees(c.amount)} flag={!!ratio && ratio >= 2} tip="At least twice the usual amount counts as unusual" />
             <Stat k="Largest before" v={amounts?.amounts.length ? rupees(Math.max(...amounts.amounts)) : "n/a"} tip="Largest of the recent completed payments" />
           </div>
-          <Caps>{amounts?.payments.length ? `Payment history · last ${amounts.payments.length}` : "No payment history yet"}</Caps>
+          <Caps>{amounts?.payments.length ? `Amount ranges · last ${amounts.payments.length} payments${row.status === "completed" ? "" : " and this one"}` : "No payment history yet"}</Caps>
           <PaymentHistory c={c} amounts={amounts} />
           <OtherChecks c={c} cases={cases} now={now} select={actions.select} />
         </Panel>
@@ -321,8 +321,8 @@ function FamilyRadar({ contrib, thresholds }: { contrib: Record<string, number>;
 }
 
 // Same pair as the Bklit bar-chart preview: indigo for all payments, gold for first-time payers.
-const BAR_INDIGO = "#6366f1";
-const BAR_GOLD = "#eab308";
+const BAR_ALL = "var(--primary)";
+const BAR_NEW = "var(--risk-amber)";
 const SLOT_HOURS = 4;  // six 4-hour slots: hourly counts are mostly 0 or 1 and would draw hairline bars
 
 function PayersPerHour({ payers, payments, now }: { payers: PayeeView["new_payers_24h"]; payments: string[]; now: number }) {
@@ -343,15 +343,15 @@ function PayersPerHour({ payers, payments, now }: { payers: PayeeView["new_payer
     <div className="mt-1.5">
       <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
         <span className="flex items-center gap-3 text-muted-foreground">
-          <span className="flex items-center gap-1.5"><i className="inline-block size-2 rounded-sm" style={{ background: BAR_INDIGO }} />{payments.length} payments</span>
-          <span className="flex items-center gap-1.5"><i className="inline-block size-2 rounded-sm" style={{ background: BAR_GOLD }} />{payers.length} first-time payers</span>
+          <span className="flex items-center gap-1.5"><i className="inline-block size-2 rounded-sm" style={{ background: BAR_ALL }} />{payments.length} payments</span>
+          <span className="flex items-center gap-1.5"><i className="inline-block size-2 rounded-sm" style={{ background: BAR_NEW }} />{payers.length} first-time payers</span>
         </span>
         <span className={cn(latest >= 3 ? "font-medium text-[var(--risk-red-ink)]" : "text-muted-foreground")}>{latest} new in the last {SLOT_HOURS} h</span>
       </div>
       <BarChart data={data} xDataKey="slot" aspectRatio="2.4 / 1" margin={{ top: 12, right: 8, bottom: 26, left: 8 }} barGap={0.28}>
         <Grid horizontal />
-        <Bar dataKey="All payments" fill={BAR_INDIGO} lineCap="round" />
-        <Bar dataKey="First-time payers" fill={BAR_GOLD} lineCap="round" />
+        <Bar dataKey="All payments" fill={BAR_ALL} lineCap="round" />
+        <Bar dataKey="First-time payers" fill={BAR_NEW} lineCap="round" />
         <BarXAxis />
         <ChartTooltip />
       </BarChart>
@@ -359,28 +359,27 @@ function PayersPerHour({ payers, payments, now }: { payers: PayeeView["new_payer
   );
 }
 
-/** Each recent payment as a bar, then this one in its tier colour: a spike against a flat run reads at a glance. */
+const BANDS: [string, number][] = [["Up to ₹500", 500], ["₹500–2k", 2000], ["₹2k–10k", 10000], ["₹10k–50k", 50000], ["₹50k+", Infinity]];
+
+/** How often the payer paid in each amount range, with this payment stacked in its range. Counts, not
+ *  amounts, so one big payment cannot flatten the rest: a red block in an empty range reads "never this much". */
 function PaymentHistory({ c, amounts }: { c: CaseRow; amounts: PayerAmounts | null }) {
   const data = useMemo(() => {
-    const seen = new Set<string>();
-    const rows: Record<string, string | number>[] = (amounts?.payments ?? []).slice().reverse().map((p) => {
-      let at = `${new Date(p.at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} ${hm(p.at)}`;
-      while (seen.has(at)) at += " ";
-      seen.add(at);
-      return { at, Earlier: p.amount };
-    });
+    const band = (v: number) => BANDS.findIndex(([, top]) => v <= top);
+    const rows: Record<string, string | number>[] = BANDS.map(([name]) => ({ band: name, "Past payments": 0 }));
+    for (const p of amounts?.payments ?? []) (rows[band(p.amount)]["Past payments"] as number)++;
     // A completed case is already in the history; an open one is the payment being checked.
-    if (c.status !== "completed") rows.push({ at: "This payment", "This payment": c.amount });
+    if (c.status !== "completed") rows[band(c.amount)]["This payment"] = 1;
     return rows;
   }, [amounts, c.amount, c.status]);
   if (!amounts?.payments.length) return <div className="mt-2 h-[120px] rounded-lg border border-dashed text-center text-xs leading-[120px] text-muted-foreground">No completed payments yet</div>;
   return (
     <div className="mt-1">
-      <BarChart data={data} xDataKey="at" stacked aspectRatio="3.2 / 1" margin={{ top: 10, right: 8, bottom: 22, left: 8 }} barGap={0.18}>
+      <BarChart data={data} xDataKey="band" stacked aspectRatio="3 / 1" margin={{ top: 10, right: 8, bottom: 24, left: 8 }} barGap={0.32}>
         <Grid horizontal />
-        <Bar dataKey="Earlier" fill="#98a2b3" lineCap={2} />
-        <Bar dataKey="This payment" fill={TIER_COLOR[c.tier]} lineCap={2} />
-        <BarXAxis maxLabels={4} />
+        <Bar dataKey="Past payments" fill="var(--primary)" lineCap={3} />
+        <Bar dataKey="This payment" fill={TIER_COLOR[c.tier]} lineCap={3} />
+        <BarXAxis showAllLabels />
         <ChartTooltip />
       </BarChart>
     </div>

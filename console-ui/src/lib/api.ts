@@ -43,10 +43,11 @@ export interface Summary {
     checks: number; green: number; amber: number; red: number; decline: number; warnings: number;
     holds_running: number; disputes_pending: number; money_held: number; payers: number;
   };
-  hourly: { hour_start: string; checks: number; warnings: number; red: number }[];
+  hourly: { hour_start: string; checks: number; warnings: number; red: number; decline: number }[];
   cutoffs: { amber: number; red: number } | null;
   family_thresholds: Record<string, number>;
   hold_minutes: number;
+  demo_reset: boolean;
 }
 
 export interface PayeeView {

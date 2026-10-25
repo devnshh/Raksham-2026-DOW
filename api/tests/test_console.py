@@ -84,3 +84,36 @@ def test_confirming_a_payee_marks_every_case_to_it(client: TestClient):
     assert all(listed[c]["payee_confirmed_scam"] for c in case_ids if c in listed)
     client.post(f"/v1/payees/{vpa}/clear", json={"analyst_id": "analyst_gamma"})
     assert not client.get(f"/v1/cases/{case_ids[0]}").json()["payee_confirmed_scam"]
+
+
+def test_demo_reset_is_off_unless_the_server_allows_it(client, monkeypatch, tmp_path):
+    from api.db.connection import init_db
+    from api.db.seed import seed_data
+    from api.main import app
+    from api.routers.assess import get_feature_store
+    from api.store.sqlite_store import SQLiteFeatureStore
+
+    # Its own database: a reset must never touch the one the other tests share.
+    db = str(tmp_path / "reset.db")
+    init_db(db)
+    seed_data(db)
+    store = SQLiteFeatureStore(db)
+    previous = app.dependency_overrides.get(get_feature_store)
+    app.dependency_overrides[get_feature_store] = lambda: store
+    try:
+        monkeypatch.delenv("SATARK_ALLOW_DEMO_RESET", raising=False)
+        assert client.get("/v1/console/summary").json()["demo_reset"] is False
+        assert client.post("/v1/console/reset", json={}).status_code == 403
+
+        store.record_payment(payer_id="reset-me@ybl", payee_vpa="someone@ybl", amount=500.0)
+        assert store.recent_amounts("reset-me@ybl")
+        monkeypatch.setenv("SATARK_ALLOW_DEMO_RESET", "1")
+        assert client.get("/v1/console/summary").json()["demo_reset"] is True
+        assert client.post("/v1/console/reset", json={}).status_code == 200
+        assert not store.recent_amounts("reset-me@ybl")
+        assert client.get("/v1/cases").json() == []
+    finally:
+        if previous is None:
+            app.dependency_overrides.pop(get_feature_store, None)
+        else:
+            app.dependency_overrides[get_feature_store] = previous

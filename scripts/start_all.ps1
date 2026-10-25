@@ -9,6 +9,8 @@ $MODEL_SERVICE_KEY = if ($env:MODEL_SERVICE_KEY) { $env:MODEL_SERVICE_KEY } else
 $env:MODEL_SERVICE_KEY = $MODEL_SERVICE_KEY
 if (-not $env:SATARK_ANALYST_KEY) { $env:SATARK_ANALYST_KEY = [guid]::NewGuid().ToString("N") }
 Write-Host "Analyst API key (X-API-Key): $env:SATARK_ANALYST_KEY" -ForegroundColor Magenta
+# Demo only: lets the analyst console's "Reset demo" button wipe and reseed the database.
+if (-not $env:SATARK_ALLOW_DEMO_RESET) { $env:SATARK_ALLOW_DEMO_RESET = "1" }
 
 Write-Host "==========================================================" -ForegroundColor Green
 Write-Host "   SATARK Multi-Service Launcher (RAKSHAM Hackathon)      " -ForegroundColor Green

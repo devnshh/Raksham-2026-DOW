@@ -118,6 +118,8 @@ cd console-ui && npm install && npm run build
 
 Confirming a payee as a scam (two analysts) marks every case to that UPI ID, past ones included, as "Scam payee"; each case keeps the tier its own check decided.
 
+"Reset demo" in the console header does the same as `scripts/reset_demo_db.py` without restarting anything. It only appears when the server runs with `SATARK_ALLOW_DEMO_RESET=1`, which the start scripts set; leave it unset anywhere real data lives.
+
 ### Mule caught (analyst console)
 
 1. Open `http://127.0.0.1:8000/console` and paste the analyst key the start script printed.
