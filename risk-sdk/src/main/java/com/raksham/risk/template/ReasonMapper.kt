@@ -116,6 +116,10 @@ object ReasonMapper {
             en = "The link that opened this payment is known to be unsafe or very new",
             hi = "जिस लिंक से यह भुगतान शुरू हुआ वह असुरक्षित या बहुत नया है"
         ),
+        "COLLECT_REQUEST" to PlainReason(
+            en = "This is a request to take money from you. Approving it sends money; it never receives any",
+            hi = "यह आपसे पैसे लेने का अनुरोध है। मंज़ूरी देने पर पैसे आपके खाते से जाएंगे, आएंगे नहीं"
+        ),
         "LINK_ENTRY" to PlainReason(
             en = "This payment was opened from a link",
             hi = "यह भुगतान एक लिंक से खोला गया"

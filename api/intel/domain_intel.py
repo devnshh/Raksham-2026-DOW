@@ -57,7 +57,7 @@ def lookup_domain(domain: Optional[str], timeout_ms: float = 300.0) -> Dict[str,
     # Strip protocols and paths if present (e.g. https://domain.com/path -> domain.com)
     if "://" in clean_domain:
         clean_domain = clean_domain.split("://", 1)[1]
-    clean_domain = clean_domain.split("/", 1)[0].split(":", 1)[0]
+    clean_domain = clean_domain.split("/", 1)[0].split(":", 1)[0].rstrip(".")
 
     # Check in-memory cache
     if clean_domain in _DOMAIN_CACHE:
@@ -72,8 +72,15 @@ def lookup_domain(domain: Optional[str], timeout_ms: float = 300.0) -> Dict[str,
             logger.warning(f"Domain lookup for {clean_domain} timed out ({elapsed_ms:.1f}ms > {timeout_ms}ms)")
             return {"bad": None, "age_days": None}
 
-        if clean_domain in db:
-            entry = db[clean_domain]
+        # A subdomain of a known-bad domain is bad too (www.x, pay.x): the owner of x controls them.
+        parents = [".".join(clean_domain.split(".")[i:]) for i in range(1, clean_domain.count("."))]
+        bad_parent = next((d for d in parents if d in db and db[d].get("bad") == 1), None)
+        if clean_domain not in db and bad_parent:
+            known_entry = db[bad_parent]
+        else:
+            known_entry = db.get(clean_domain)
+        if known_entry is not None:
+            entry = known_entry
             bad_val = int(entry.get("bad", 0)) if entry.get("bad") is not None else None
             age_val = int(entry.get("age_days", 0)) if entry.get("age_days") is not None else None
             result = {"bad": bad_val, "age_days": age_val}

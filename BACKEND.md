@@ -350,8 +350,11 @@ The policy engine (`api/policy/engine.py`) is written in pure Python with zero f
            ▼
 5. Tier
    ├── RED:   score >= red threshold AND >= 2 independent families firing ──► RED (30-min hold)
-   ├── AMBER: score >= amber threshold, OR screen share / new remote app,
-   │          OR first payment >= stranger_amount_floor (25,000) to a non-contact, unverified payee
+   ├── AMBER: score >= amber threshold, OR screen share / new remote app (not on a payee paid 2+ times
+   │          over 7+ days unless a non-contact is calling), OR a known-bad link,
+   │          OR >= stranger_amount_floor (25,000, incl. last 24h) to a not-yet-trusted, non-contact,
+   │          unverified payee, OR non-contact caller + first-time payee + 4x usual + score >= 0.7,
+   │          OR an unverified collect request with a receive/refund note
    │          (two families alone no longer warn: on validation that rule raised ~15,900 false alarms for 1 extra scam)
    └── GREEN: otherwise
    Family A counts a call at full weight only when the caller is not a contact saved 7+ days ago.

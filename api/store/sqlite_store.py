@@ -590,19 +590,20 @@ class SQLiteFeatureStore(BaseFeatureStore):
                  datetime.now(timezone.utc).isoformat())
             )
 
-    def get_pair_trust(self, user_id: str, payee_vpa: str, current_reports: int, max_age_days: int = 90) -> Optional[str]:
-        """'analyst', 'user' or None. Trust lapses with age, and as soon as the payee has been
-        reported more often than when the trust was given."""
+    def get_pair_trust(self, user_id: str, payee_vpa: str, current_reports: int,
+                       max_age_days: int = 90) -> Tuple[Optional[str], Optional[float]]:
+        """('analyst' or 'user', the amount of the vouched case), or (None, None). Trust lapses with
+        age, and as soon as the payee has been reported more often than when the trust was given."""
         cutoff = (datetime.now(timezone.utc) - timedelta(days=max_age_days)).isoformat()
         with get_db(self.db_path) as conn:
             row = conn.execute(
                 """
-                SELECT source FROM trusted_pairs
-                WHERE user_id = ? AND payee_vpa = ? AND created_at >= ? AND reports_at_trust >= ?;
+                SELECT tp.source, c.amount FROM trusted_pairs tp LEFT JOIN cases c ON c.case_id = tp.case_id
+                WHERE tp.user_id = ? AND tp.payee_vpa = ? AND tp.created_at >= ? AND tp.reports_at_trust >= ?;
                 """,
                 (user_id.strip().lower(), payee_vpa.strip().lower(), cutoff, int(current_reports))
             ).fetchone()
-        return row["source"] if row else None
+        return (row["source"], row["amount"]) if row else (None, None)
 
     def clear_payee(self, payee_vpa: str) -> List[str]:
         """Analyst clear: withdraws every confirmation so payments are no longer declined. User reports

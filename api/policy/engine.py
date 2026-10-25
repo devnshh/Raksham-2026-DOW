@@ -204,22 +204,42 @@ class PolicyEngine:
             "D": round(fam_d, 3)
         }
 
-    def _large_first_payment_to_stranger(self, features: Dict[str, Any]) -> bool:
-        """A first payment of at least the configured amount to someone who is neither a saved contact
-        nor a verified merchant. Picking the payee from contacts does not count while a caller who is
-        not a saved contact is on the line, or when the handle looks like a brand ("save my number as
-        SBI Officer, then pay from contacts")."""
+    def _large_first_payment_to_stranger(self, features: Dict[str, Any],
+                                         payee_history: Optional[Tuple[int, int]] = None) -> bool:
+        """A payment of at least the configured amount (counting what was sent to them in the last 24
+        hours) to someone who is not yet an established payee, a saved contact or a verified merchant.
+        Not just the first payment: a "Rs 1 to verify" or a split into smaller payments would otherwise
+        switch the check off. Picking the payee from contacts does not count while a caller who is not
+        a saved contact is on the line, or when the handle looks like a brand ("save my number as SBI
+        Officer, then pay from contacts")."""
         floor = float(self.config.get("stranger_amount_floor", 25000))
         try:
-            amount = float(features.get("amount") or 0)
+            amount = float(features.get("amount") or 0) + float(features.get("same_payee_sum_24h") or 0)
         except (TypeError, ValueError):
             return False
+        known = self.config.get("trusted_payee", {})
+        paid_before, paid_over_days = payee_history or (0, 0)
+        established = paid_before >= known.get("min_payments", 3) and \
+            paid_over_days >= known.get("min_history_days", 30)
         unknown_caller = bool(features.get("on_call")) and not features.get("caller_in_contacts")
         brand_like = float(features.get("lookalike_score") or 0) >= \
             float(self.config.get("eligibility_gate", {}).get("bypass_on_lookalike", 0.70))
         from_contacts = features.get("entry_channel") == "contact" and not unknown_caller and not brand_like
-        return bool(features.get("payee_first_time")) and not from_contacts \
+        return (bool(features.get("payee_first_time")) or not established) and not from_contacts \
             and not features.get("payee_verified") and amount >= floor
+
+    def _suspicious_collect(self, features: Dict[str, Any]) -> bool:
+        if features.get("entry_channel") != "merchant_collect" or features.get("payee_verified"):
+            return False
+        return not self.config.get("collect_amber", {}).get("needs_receive_note", True) \
+            or features.get("note_intent") in ("receive", "refund")
+
+    def _unknown_caller_new_payee(self, features: Dict[str, Any], score: float) -> bool:
+        cfg = self.config.get("unknown_caller_amber", {})
+        unknown_caller = bool(features.get("on_call")) and not features.get("caller_in_contacts")
+        return unknown_caller and bool(features.get("payee_first_time")) \
+            and float(features.get("amount_ratio") or 0) >= cfg.get("min_amount_ratio", 4.0) \
+            and score >= cfg.get("min_score", 0.7)
 
     def _default_config(self) -> Dict[str, Any]:
         return {
@@ -272,6 +292,7 @@ class PolicyEngine:
         trusted_payee_history: Optional[Tuple[int, int]] = None,  # (payment_count, history_days)
         questionnaire_answers: Optional[Dict[str, Any]] = None,
         pair_trust: Optional[str] = None,  # "user" ("This was me" on an amber) or "analyst" (appeal accepted)
+        vouched_amount: Optional[float] = None,  # amount of the case the user vouched for
         simulate_timeout: bool = False,
         simulate_failure: bool = False
     ) -> PolicyDecision:
@@ -369,7 +390,10 @@ class PolicyEngine:
             (lookalike >= lookalike_bypass) or
             # A reported payee, a known-bad link or a scam-story note always reaches the model.
             reported_or_bad_link(features) or
-            features.get("note_intent") in SUSPICIOUS_INTENTS
+            features.get("note_intent") in SUSPICIOUS_INTENTS or
+            # Split or follow-up payments that the stranger floor covers (amount_ratio can be low once
+            # the scam payments themselves have become the user's baseline).
+            self._large_first_payment_to_stranger(features, trusted_payee_history)
         )
 
         if not is_eligible:
@@ -468,7 +492,7 @@ class PolicyEngine:
                 reasons.append("PAYEE_REPORTED")
             if features.get("link_bad") == 1:
                 reasons.append("BAD_LINK")
-            if self._large_first_payment_to_stranger(features):
+            if self._large_first_payment_to_stranger(features, trusted_payee_history):
                 reasons.append("NEW_PAYEE")
 
             # In fail-open, if critical device compromise is present, raise amber caution, else green
@@ -532,11 +556,24 @@ class PolicyEngine:
         # Amber needs the model's amber threshold or a strong coercion signal. Two families firing
         # is no longer enough on its own: on the validation world (seed 33) that rule warned on
         # about 15,900 genuine payments and caught 1 scam the model missed (ml/eval_log.md).
-        has_strong_signal = strong_coercion(features)
+        # Screen sharing or a new remote-access app warns on its own, except for a payee the user has
+        # paid before over at least a week while no unknown caller is on the line: family helping by
+        # screen share caused about 3 in 4 false alarms on the validation worlds, and money sent to an
+        # established payee is not where a remote scammer can take it. A same-day "Rs 1 test"
+        # payment does not make a payee established.
+        known = self.config.get("coercion_known_payee", {})
+        paid_before, paid_over_days = trusted_payee_history or (0, 0)
+        unknown_caller = bool(features.get("on_call")) and not features.get("caller_in_contacts")
+        established_payee = paid_before >= known.get("min_payments", 2) and \
+            paid_over_days >= known.get("min_history_days", 7)
+        has_strong_signal = strong_coercion(features) and not (established_payee and not unknown_caller)
         is_amber_candidate = (
             (fusion_score_val >= amber_thresh)
             or (tier_hint in ("amber", "red"))
             or has_strong_signal
+            # Server link intelligence marks the domain as known bad: never green, whatever the model
+            # makes of the rest (a "safe" note pulled a bad link on a live call down to green).
+            or features.get("link_bad") == 1
         )
 
         if elevated_families_count >= 2 and is_red_candidate:
@@ -547,7 +584,7 @@ class PolicyEngine:
             tier = "amber"
             hold_minutes = 0
             applied_rules.append("amber_threshold_met")
-        elif self._large_first_payment_to_stranger(features):
+        elif self._large_first_payment_to_stranger(features, trusted_payee_history):
             # Safety net the model does not provide: it learned that big first payments to people are
             # usually legitimate (emergencies, purchases), so ₹50,000 to an unknown number scored green.
             # On the validation worlds this costs about 0.4 to 0.5 extra warnings per 1,000 payments.
@@ -557,6 +594,23 @@ class PolicyEngine:
             # AMOUNT_UNUSUAL only when it is true for this user (same test as the scorer's reasons).
             unusual = float(features.get("amount_ratio") or 0) >= 2 or float(features.get("amount_z") or 0) >= 2
             for code in (["AMOUNT_UNUSUAL"] if unusual else []) + ["NEW_PAYEE"]:
+                if code not in reasons:
+                    reasons.append(code)
+        elif self._suspicious_collect(features):
+            # "Approve to RECEIVE money": a collect request takes money from the user. From an
+            # unverified requester with a receive/refund story it is the classic collect scam.
+            tier = "amber"
+            hold_minutes = 0
+            applied_rules.append("suspicious_collect_request")
+            if "COLLECT_REQUEST" not in reasons:
+                reasons.insert(0, "COLLECT_REQUEST")
+        elif self._unknown_caller_new_payee(features, fusion_score_val):
+            # A caller who is not a saved contact, a first-time payee and an unusually large amount:
+            # the coached-transfer shape under the stranger floor, where the model alone stays green.
+            tier = "amber"
+            hold_minutes = 0
+            applied_rules.append("unknown_caller_new_payee")
+            for code in ("ON_CALL", "NEW_PAYEE", "AMOUNT_UNUSUAL"):
                 if code not in reasons:
                     reasons.append(code)
         else:
@@ -576,6 +630,13 @@ class PolicyEngine:
         # was already returned in step 1.
         # ---------------------------------------------------------------------
         lowerable = ("amber", "red") if pair_trust == "analyst" else ("amber",) if pair_trust == "user" else ()
+        if pair_trust == "user":
+            # "This was me" covers about what the user saw: not a much larger amount (a task scam's
+            # escalating steps), a known-bad link or a scam-story note.
+            cap = float(self.config.get("vouch_max_amount_ratio", 1.5)) * float(vouched_amount or 0)
+            if (vouched_amount is not None and float(features.get("amount") or 0) > cap) \
+                    or features.get("link_bad") == 1 or features.get("note_intent") in SUSPICIOUS_INTENTS:
+                lowerable = ()
         if tier in lowerable and not has_family_a:
             applied_rules.append(f"{pair_trust}_vouched_payee_green")
             tier, hold_minutes, reasons = "green", 0, []

@@ -256,13 +256,15 @@ def assess_risk(
         )
 
     # 8. Evaluate Policy Engine with Satark fusion model scoring
+    pair_trust, vouched_amount = store.get_pair_trust(user_id, payee_vpa, payee_profile["payee_reports_prior"])
     try:
         decision = policy.evaluate(
             features=feature_vector,
             is_confirmed_scam_payee=payee_profile["is_confirmed_scam"],
             trusted_payee_history=trusted_history,
             questionnaire_answers=req.questionnaire_answers,
-            pair_trust=store.get_pair_trust(user_id, payee_vpa, payee_profile["payee_reports_prior"])
+            pair_trust=pair_trust,
+            vouched_amount=vouched_amount
         )
     except Exception as exc:
         # Safe fallback tier (amber, reason code CHECK_UNAVAILABLE), log to audit, never green
@@ -409,6 +411,10 @@ def appeal_case(
     row = _load_case_for_user(store, case_id, req.user_ref)
     if row["tier"] != "amber":
         raise HTTPException(status_code=409, detail="Only an amber warning can be marked 'This was me'")
+    created = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) - created > timedelta(hours=24):
+        # A vouch covers the payment the user just saw, not one from weeks ago (which also renewed trust forever).
+        raise HTTPException(status_code=409, detail="This warning is more than 24 hours old")
     features = json.loads(row["feature_vector"] or "{}")
     if "CHECK_UNAVAILABLE" in json.loads(row["reasons"] or "[]"):
         raise HTTPException(status_code=409, detail="This check did not run, so there is nothing to vouch for")

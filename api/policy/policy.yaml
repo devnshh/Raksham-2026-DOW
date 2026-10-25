@@ -25,9 +25,29 @@ eligibility_gate:
   bypass_on_family_a: true
   bypass_on_lookalike: 0.70
 
-# Large first payment to a stranger: amber when a first-time payee who is neither a saved contact nor a
-# verified merchant gets at least this much (INR). Chosen on validation worlds 33, 44, 55.
+# Large payment to a stranger: amber when a payee who is not yet trusted (trusted_payee above), not a
+# saved contact and not a verified merchant gets at least this much (INR), counting the last 24 hours
+# to them. Floor chosen on validation worlds 33, 44, 55.
 stranger_amount_floor: 25000
+
+# Screen sharing / a new remote-access app warns on its own, except for a payee paid this many times
+# over this many days while no unknown caller is on the line. Chosen on validation world 33 (over the
+# trusted-payee 3 / 30), confirmed on 44 and 55.
+coercion_known_payee:
+  min_payments: 2
+  min_history_days: 7
+
+# Amber for a caller who is not a saved contact + a first-time payee + an amount at least min_amount_ratio
+# times the user's usual, when the model score is at least min_score (coached transfers under the
+# stranger floor). Chosen on validation world 33, confirmed on 44 and 55.
+unknown_caller_amber:
+  min_amount_ratio: 4.0
+  min_score: 0.7
+
+# "This was me" lowers a later amber for the payee only up to this multiple of the vouched amount (and
+# never with a known-bad link or a scam-story note). From the population review on world 33, confirmed on
+# 33, 44 and 55.
+vouch_max_amount_ratio: 1.5
 
 # Execution Safeguards
 timeout_ms: 300

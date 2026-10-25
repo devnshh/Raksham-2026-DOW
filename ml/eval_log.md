@@ -88,3 +88,20 @@ Model plus policy: recall 95.8% (run 2: 95.8%), precision 5.7% (6.2%), 5.4 warni
 - **Cost of the stranger rule:** emergency payments to a new person went from 15% to 34% warned (269); second-hand purchases from 5% to 6%; on-call genuine payments from 0.56% to 0.79%. This is the price of warning on Rs 25,000 or more to someone who is not a saved contact; the warning is one tap.
 - **Screen sharing and remote-access installs** remain the largest source of false alarms (1,314 and 442, all warned).
 - **Fairness:** every age band, language, phone tier and screen-reader group is between 0.48% and 0.55% (overall 0.51%).
+
+## Between run 3 and run 4: what changed and why
+
+Written before run 4. Chosen on validation world 33 and kept only if it held on 44 and 55 with no scam payment lost and no more than one extra honest red pause per world; never the holdout. Simulation numbers.
+
+- **Where it came from.** An edge-case review of the API and the phone (probes, not the holdout): bypasses such as a Rs 1 "test" payment switching off the stranger rule, a harmless note pulling a bad-link payment on a live call to green, and family screen sharing warning on every payment with no way out.
+- **Kept, in the order applied** (false alarms per world on seeds 33 / 44 / 55; scams gained):
+  - Note risk floored at the empty-note value, and a known-bad link always at least amber: +51 / +60 / +47, mostly honest payments from links the simulated feed marks bad; 0 scams.
+  - Note keywords as whole words, scam stories checked first (same rule on the phone): no change in the simulator.
+  - Screen sharing / a new remote app does not warn on a payee paid 2+ times over 7+ days unless a non-contact is calling (compared with trusted payees 3 / 30 on world 33: -1,048 vs -714): -1,048 / -1,045 / -1,031; 0 scams lost.
+  - Stranger floor applies until the payee is trusted and counts the last 24 hours (2 / 7 tied with 3 / 30 on world 33; 3 / 30 kept as the safer one): +15 / +17 / +24; 0 scams.
+  - Non-contact caller + first-time payee + 4x usual amount + score >= 0.7 (0.5 added +0.22 per 1,000 on world 44 for no scam; 0.6 and 0.7 compared on 33): +28 / +42 / +35; scams +1 / 0 / +1.
+  - "This was me" capped at 1.5x the vouched amount (upper bound with every eligible amber vouched): scams silenced by vouching 7 / 9 / 6 before, 0 / 1 / 2 after.
+  - Collect request from an unverified requester with a receive or refund note: no change in the simulator (the broad version, any unverified collect, added 2,480 on world 33 and was dropped).
+- **Dropped:** milder stand-in texts for note labels (lost a scam on world 33), dropping "deposit" and "commission" as task words (lost a Rs 335 scam on world 55), scoring a saved-contact call as no call (+5 honest red pauses on world 33).
+- **Validation, model plus policy, before and after:** warnings per 1,000 5.49 / 5.40 / 5.64 to 3.31 / 3.26 / 3.51; false alarms 2,258 / 2,198 / 2,317 to 1,304 / 1,272 / 1,392; scam payments warned 139 / 133 / 130 to 140 / 133 / 131; honest red pauses unchanged (5 / 4 / 9).
+- Run 4 is reported whatever it shows.

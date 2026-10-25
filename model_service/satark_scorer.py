@@ -109,7 +109,10 @@ class SatarkScorer:
             if c.startswith("entry_"):
                 X[c] = [1 if f"entry_{f.get('entry_channel')}" == c else 0 for f in feats]
         X = X[self.tab_cols]
-        X["note_risk"] = self._note_risk([INTENT_TEXT.get(i or "none", "") for i in intents])
+        # A note can add risk but never lower it below an empty note: the note is typed by the user, so
+        # a coaching scammer controls it too ("write 'rent' in the remarks" turned a mule warning green).
+        note_risk = self._note_risk([INTENT_TEXT.get(i or "none", "") for i in intents])
+        X["note_risk"] = np.maximum(note_risk, self._note_risk([""])[0])
         return X[self.cols]
 
     def _tier(self, s):
