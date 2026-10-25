@@ -633,8 +633,10 @@ class PolicyEngine:
         if pair_trust == "user":
             # "This was me" covers about what the user saw: not a much larger amount (a task scam's
             # escalating steps), a known-bad link or a scam-story note.
+            # A vouch with no known amount covers nothing; payments split within 24 hours count together.
             cap = float(self.config.get("vouch_max_amount_ratio", 1.5)) * float(vouched_amount or 0)
-            if (vouched_amount is not None and float(features.get("amount") or 0) > cap) \
+            sent = float(features.get("amount") or 0) + float(features.get("same_payee_sum_24h") or 0)
+            if vouched_amount is None or sent > cap \
                     or features.get("link_bad") == 1 or features.get("note_intent") in SUSPICIOUS_INTENTS:
                 lowerable = ()
         if tier in lowerable and not has_family_a:

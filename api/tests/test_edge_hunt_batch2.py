@@ -94,6 +94,10 @@ def test_this_was_me_covers_about_the_vouched_amount_only():
     assert engine.evaluate({**f, "amount": 95000}, pair_trust="user", vouched_amount=30000).tier == "amber"
     assert engine.evaluate({**f, "amount": 30000, "note_intent": "kyc"}, pair_trust="user",
                            vouched_amount=30000).tier == "amber"
+    # Fails closed without a vouched amount, and splitting within 24 hours counts together.
+    assert engine.evaluate({**f, "amount": 1000}, pair_trust="user", vouched_amount=None).tier == "amber"
+    assert engine.evaluate({**f, "amount": 30000, "same_payee_sum_24h": 30000}, pair_trust="user",
+                           vouched_amount=30000).tier == "amber"
 
 
 def test_this_was_me_is_refused_on_an_old_warning(client: TestClient):
