@@ -18,6 +18,7 @@ from api.models import (
     AppealResponse,
     PaymentCompleteRequest,
     PaymentCompleteResponse,
+    CaseStatusResponse,
 )
 from api.store.sqlite_store import SQLiteFeatureStore
 from api.store.audit_store import AuditLogStore
@@ -72,6 +73,13 @@ def hold_ends_at(row: Dict[str, Any]) -> Optional[datetime]:
     created = datetime.fromisoformat(row["created_at"].replace("Z", "+00:00"))
     end = created + timedelta(minutes=int(row["hold_minutes"]))
     return end if datetime.now(timezone.utc) < end else None
+
+
+def case_state(evidence: Dict[str, Any]) -> str:
+    """open, completed, or cancelled (reported as a scam, or the user tapped Cancel on the phone)."""
+    if evidence.get("completed"):
+        return "completed"
+    return "cancelled" if evidence.get("cancelled") or evidence.get("cancelled_by_user") else "open"
 
 
 def _active_hold(store: SQLiteFeatureStore, user_id: str, payee_vpa: str) -> Optional[Dict[str, Any]]:
@@ -137,6 +145,10 @@ def assess_risk(
     held = None if payee_profile["is_confirmed_scam"] else _active_hold(store, user_id, payee_vpa)
     if held:
         held_reasons = json.loads(held["reasons"] or "[]")
+        if json.loads(held["evidence_pack"] or "{}").get("cancelled_by_user"):
+            # Cancel then try again: the payment is back on the paused case, so it is open again.
+            store.update_case_decision(held["case_id"], held["tier"], held_reasons, held["template_id"],
+                                       int(held["hold_minutes"]), {"cancelled_by_user": False})
         audit.append_log(case_id=held["case_id"], user_id=user_id, payee_vpa=payee_vpa,
                          tier="red_hold_still_active", reasons=held_reasons)
         remaining = hold_ends_at(held) - datetime.now(timezone.utc)
@@ -395,6 +407,19 @@ def submit_questionnaire(
                                   hold_minutes=new_hold, case_id=case_id)
 
 
+@router.post("/risk/{case_id}/status", response_model=CaseStatusResponse)
+def case_status(case_id: str, req: AppealRequest, store: SQLiteFeatureStore = Depends(get_feature_store)) -> CaseStatusResponse:
+    """The phone polls this while a red pause is open, so an analyst's release unlocks it at once.
+    Only the case's own user can read it."""
+    row = _load_case_for_user(store, case_id, req.user_ref)
+    evidence = json.loads(row["evidence_pack"] or "{}")
+    end = hold_ends_at(row)
+    left = max(0, math.ceil((end - datetime.now(timezone.utc)).total_seconds())) if end else 0
+    status = case_state(evidence)
+    return CaseStatusResponse(case_id=case_id, tier=row["tier"], hold_active=end is not None, hold_seconds_left=left,
+                              released=bool(evidence.get("hold_released_by")), status=status)
+
+
 @router.post("/risk/{case_id}/appeal", response_model=AppealResponse)
 def appeal_case(
     case_id: str,
@@ -448,6 +473,27 @@ def report_false_alarm(
     audit.append_log(case_id=case_id, user_id=row["user_id"], payee_vpa=row["payee_vpa"],
                      tier="user_false_alarm_report", reasons=["USER_DISPUTED"])
     return AppealResponse(case_id=case_id, status="sent_for_review")
+
+
+@router.post("/risk/{case_id}/cancel", response_model=AppealResponse)
+def cancel_payment(
+    case_id: str,
+    req: AppealRequest,
+    store: SQLiteFeatureStore = Depends(get_feature_store),
+    audit: AuditLogStore = Depends(get_audit_store)
+) -> AppealResponse:
+    """The user tapped Cancel on a warning or pause, so the console shows the payment as cancelled.
+    A red pause keeps covering this payee until it ends: a retry reopens the same case."""
+    row = _load_case_for_user(store, case_id, req.user_ref)
+    evidence = json.loads(row["evidence_pack"] or "{}")
+    if evidence.get("completed"):
+        raise HTTPException(status_code=409, detail="This payment has already been made")
+    if case_state(evidence) == "open":
+        store.update_case_decision(case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
+                                   int(row["hold_minutes"]), {"cancelled_by_user": True})
+        audit.append_log(case_id=case_id, user_id=row["user_id"], payee_vpa=row["payee_vpa"],
+                         tier="user_cancelled", reasons=["USER_CANCELLED"])
+    return AppealResponse(case_id=case_id, status="cancelled")
 
 
 @router.post("/payments/complete", response_model=PaymentCompleteResponse)

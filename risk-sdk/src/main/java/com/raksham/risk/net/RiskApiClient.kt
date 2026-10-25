@@ -54,6 +54,17 @@ internal data class QuestionnairePayload(
 @Serializable
 internal data class AppealPayload(val user_ref: String)
 
+/** A red pause's hold as the server sees it (POST /v1/risk/{case_id}/status). */
+@Serializable
+data class CaseStatus(
+    val case_id: String = "",
+    val tier: String = "",
+    val hold_active: Boolean = true,
+    val hold_seconds_left: Int = 0,
+    val released: Boolean = false,
+    val status: String = "open"
+)
+
 @Serializable
 internal data class ReportPayload(
     val reporter_id: String,
@@ -166,11 +177,18 @@ internal class RiskApiClient(
         code in 200..299
     }
 
-    /** "This was me" (amber) or "Report a false alarm" (red, decline): action is "appeal" or "false-alarm". */
+    /** "This was me" (amber), "Report a false alarm" (red, decline) or a cancel: action is "appeal", "false-alarm" or "cancel". */
     suspend fun dispute(caseId: String, userRef: String, action: String): Boolean = withContext(Dispatchers.IO) {
         val path = "/v1/risk/${URLEncoder.encode(caseId, "UTF-8")}/$action"
         val (code, _) = post(path, json.encodeToString(AppealPayload(userRef)), 800, 800)
         code in 200..299
+    }
+
+    /** The server's view of a case's hold; null if it could not be read. */
+    suspend fun caseStatus(caseId: String, userRef: String): CaseStatus? = withContext(Dispatchers.IO) {
+        val path = "/v1/risk/${URLEncoder.encode(caseId, "UTF-8")}/status"
+        val (code, text) = post(path, json.encodeToString(AppealPayload(userRef)), 800, 800)
+        if (code in 200..299) json.decodeFromString<CaseStatus>(text) else null
     }
 
     /** Tells the server the PIN succeeded, so the payment updates baselines and fan-in. */

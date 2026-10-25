@@ -459,6 +459,7 @@ fun PaymentAmountScreen(
                     payeeVpa = contact.upiId,
                     amount = parsedAmount,
                     onHangUpAndCancel = {
+                        RiskGate.reportCancelledInBackground(currentDecision!!.caseId)
                         showRedSmartPause = false
                         Toast.makeText(context, "Payment cancelled safely.", Toast.LENGTH_LONG).show()
                         onBackClick()
@@ -496,6 +497,7 @@ fun PaymentAmountScreen(
                         showPinSheet = true
                     },
                     onCancel = {
+                        RiskGate.reportCancelledInBackground(currentDecision!!.caseId)
                         showAmberWarning = false
                     },
                     onThisWasMe = {

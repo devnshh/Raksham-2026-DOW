@@ -20,3 +20,6 @@ venv/
 sim/data/*.parquet
 ml/results/validation_*
 ml/results/fresh_*
+
+# Analyst console app (built into api/static/console)
+console-ui/node_modules/

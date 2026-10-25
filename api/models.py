@@ -129,6 +129,9 @@ class CaseResponse(BaseModel):
     status: str = "open"  # "open", "completed" once paid, or "cancelled" when the user reported it as a scam
     dispute: Optional[str] = None  # "this_was_me", "false_alarm_pending" or "false_alarm_accepted"
     hold_active: bool = False  # a red pause is still running (an analyst can release it)
+    # The payee has since been confirmed as a scam by two analysts: every case to it carries this, past ones
+    # included (the tier stays what the check decided at the time).
+    payee_confirmed_scam: bool = False
     evidence_pack: Optional[dict[str, Any]] = None
 
 
@@ -156,6 +159,16 @@ class QuestionnaireRequest(BaseModel):
 class AppealRequest(BaseModel):
     """The user disputes a warning on their own case."""
     user_ref: str
+
+
+class CaseStatusResponse(BaseModel):
+    """What the phone needs while a red pause is on screen: is the hold still running."""
+    case_id: str
+    tier: str
+    hold_active: bool
+    hold_seconds_left: int
+    released: bool  # an analyst ended the hold early (who did it is not shown to the user)
+    status: str     # "open", "completed" or "cancelled"
 
 
 class AppealResponse(BaseModel):

@@ -444,6 +444,37 @@ class SQLiteFeatureStore(BaseFeatureStore):
             )
             return [dict(r) for r in cursor.fetchall()]
 
+    def cases_since(self, hours: int) -> List[Dict[str, Any]]:
+        """Every case of the last `hours` hours (analyst console summary), oldest first."""
+        since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        with get_db(self.db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT case_id, user_id, amount, tier, hold_minutes, evidence_pack, created_at FROM cases
+                WHERE created_at >= ? ORDER BY created_at;
+                """,
+                (since,)
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def confirmed_scam_payees(self, vpas: List[str]) -> set:
+        """Which of these payees two analysts have confirmed as scams."""
+        if not vpas:
+            return set()
+        marks = ",".join("?" for _ in vpas)
+        with get_db(self.db_path) as conn:
+            rows = conn.execute(f"SELECT vpa FROM payees WHERE is_confirmed_scam = 1 AND vpa IN ({marks});", list(vpas)).fetchall()
+        return {r["vpa"] for r in rows}
+
+    def recent_amounts(self, user_id: str, limit: int = 60) -> List[Tuple[float, int]]:
+        """The user's last completed payments as (amount, timestamp_ms), newest first (analyst console)."""
+        with get_db(self.db_path) as conn:
+            rows = conn.execute(
+                "SELECT amount, timestamp_ms FROM transactions WHERE user_id = ? ORDER BY timestamp_ms DESC LIMIT ?;",
+                (user_id.strip().lower(), limit)
+            ).fetchall()
+        return [(float(r["amount"]), int(r["timestamp_ms"])) for r in rows]
+
     def list_cases(
         self,
         tier: Optional[str] = None,
@@ -654,6 +685,9 @@ class SQLiteFeatureStore(BaseFeatureStore):
                 (clean_payee, cutoff)
             )
             payers = [dict(r) for r in cursor.fetchall()]
+            cursor.execute("SELECT created_at FROM payments WHERE payee_vpa = ? AND created_at >= ? ORDER BY created_at;",
+                           (clean_payee, cutoff))
+            payments_24h = [r["created_at"] for r in cursor.fetchall()]
             reports = self._report_total(cursor, clean_payee)
             cursor.execute(
                 """
@@ -675,6 +709,7 @@ class SQLiteFeatureStore(BaseFeatureStore):
             "confirmations": confirmations,
             "reports": reports,
             "new_payers_24h": payers,
+            "payments_24h": payments_24h,  # every completed payment in 24 h, repeat payers included
             "recent_cases": [{**c, "reasons": json.loads(c["reasons"] or "[]")} for c in cases],
         }
 

@@ -106,6 +106,18 @@ A live call is one input to the model, not a warning on its own. Paying a known 
 
 `http://127.0.0.1:8000/eval` shows the last logged holdout run (`ml/eval_log.md`): model only against model plus policy, recall by scam type, false alarms by group and the named failure cases. "Score a fresh world" (needs the analyst key) generates a world from any unused seed and scores it live through `ml/evaluate.py`, leak checks included. The first run on a new checkout also generates the train and holdout worlds for the leak checks (about a minute and a half); later runs take seconds. `python ml/robustness.py` re-scores a separate world (seed 101) with key simulator rates at half and double (about 10 minutes); the page shows its latest run.
 
+### Analyst console
+
+`http://127.0.0.1:8000/console` is a React app (charts from the Bklit UI registry) whose source is in `console-ui/`. The built files are committed in `api/static/console/`, so the demo needs no Node and works offline. After changing the source:
+
+```bash
+cd console-ui && npm install && npm run build
+```
+
+`npm run dev` serves it with hot reload and forwards API calls to the backend on port 8000.
+
+Confirming a payee as a scam (two analysts) marks every case to that UPI ID, past ones included, as "Scam payee"; each case keeps the tier its own check decided.
+
 ### Mule caught (analyst console)
 
 1. Open `http://127.0.0.1:8000/console` and paste the analyst key the start script printed.
@@ -115,7 +127,7 @@ A live call is one input to the model, not a warning on its own. Paying a known 
 python scripts/mule_burst.py
 ```
 
-3. Click any `quickloan.agent@ybl` case. The payee view shows the new payers in the last 24 hours and in the last 10 minutes.
+3. Click any `quickloan.agent@ybl` case. The case view shows why it fired, the model score against the cut-offs, the payee's new payers per hour over 24 hours, the payer's usual amounts and the case trail. (A red pause or decline made on the phone opens in the console by itself within about two seconds, with a notification.)
 4. Enter an analyst ID and click **Confirm scam**, then change the ID and confirm again: two different analysts must confirm.
 5. In the app: Bank transfer → `quickloan.agent@ybl` → any amount. The payment is blocked, and the declined case shows up in the console.
 

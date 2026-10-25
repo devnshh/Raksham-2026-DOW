@@ -9,12 +9,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import DB_PATH, POLICY_VERSION
 from api.security import analyst_key, analyst_keys
 from api.db.seed import seed_data
 from api.policy.scorer import get_satark_scorer
+from api.routers.console import CONSOLE_DIR
 from api.routers import (
     assess_router,
     cases_router,
@@ -70,6 +72,7 @@ app.include_router(report_router)
 app.include_router(policy_router)
 app.include_router(internal_router)
 app.include_router(console_router)
+app.mount("/console/assets", StaticFiles(directory=CONSOLE_DIR / "assets"), name="console-assets")
 app.include_router(eval_router)
 
 

@@ -5,6 +5,7 @@ import com.raksham.risk.model.PaymentRequest
 import com.raksham.risk.model.PlainReason
 import com.raksham.risk.model.RiskDecision
 import com.raksham.risk.model.RiskTier
+import com.raksham.risk.net.CaseStatus
 import com.raksham.risk.net.PaymentCompletePayload
 import com.raksham.risk.net.RiskApiClient
 import com.raksham.risk.session.SessionSignalSourceProvider
@@ -111,6 +112,13 @@ object RiskGate {
         }
     }
 
+    /** The server's view of this case's hold, polled while a red pause is open so an analyst's release
+     *  unlocks it. Null when offline or for a local fallback case: the phone's own timer then applies. */
+    suspend fun caseStatus(caseId: String): CaseStatus? {
+        if (caseId.isBlank() || caseId.startsWith("local-offline")) return null
+        return try { apiClient.caseStatus(caseId, lastUserRef) } catch (e: Exception) { null }
+    }
+
     /** "This was me" on an amber warning: later ambers for this payee are not shown (except during a call).
      *  The server refuses it when this warning itself came during a call or with a remote-access app. */
     suspend fun markThisWasMe(caseId: String): Boolean = dispute(caseId, "appeal")
@@ -164,6 +172,13 @@ object RiskGate {
 
     /** Reports the payee as a scam and marks this case cancelled. Runs outside the screen's lifetime, so it
      *  still completes after the warning closes and the user is sent to the dialer or browser. */
+    /** The user cancelled on a warning or pause: the analyst console shows the payment as cancelled.
+     *  Best effort, on a background scope because the payment screen closes right after. */
+    fun reportCancelledInBackground(caseId: String) {
+        if (caseId.isBlank() || caseId.startsWith("local-offline")) return
+        backgroundScope.launch { runCatching { apiClient.dispute(caseId, lastUserRef, "cancel") } }
+    }
+
     fun reportScamInBackground(caseId: String, payeeVpa: String) {
         val case = caseId.takeUnless { it.isBlank() || it.startsWith("local-offline") }
         backgroundScope.launch { runCatching { apiClient.reportScam(lastUserRef, payeeVpa, case) } }

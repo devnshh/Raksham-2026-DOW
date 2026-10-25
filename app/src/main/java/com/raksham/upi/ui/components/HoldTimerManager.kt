@@ -9,6 +9,12 @@ object HoldTimerManager {
         holdStartEpochMs = System.currentTimeMillis()
     }
 
+    /** Follows the server: the hold has this many seconds left (0 when an analyst released it). */
+    fun syncRemaining(seconds: Int) {
+        holdDurationSeconds = seconds.coerceAtLeast(0)
+        holdStartEpochMs = System.currentTimeMillis()
+    }
+
     fun getRemainingSeconds(): Int {
         if (holdStartEpochMs == 0L) return 0
         val elapsed = (System.currentTimeMillis() - holdStartEpochMs) / 1000

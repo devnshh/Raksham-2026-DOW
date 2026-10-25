@@ -184,3 +184,29 @@ def test_malformed_payee_and_amount_are_rejected(client: TestClient):
     done = client.post("/v1/payments/complete", json={"case_id": "c-x", "user_ref": "u", "payee_vpa": "shop@ybl",
                                                       "amount": 0})
     assert done.status_code == 422
+
+
+def test_the_phone_sees_an_analyst_release(client: TestClient):
+    user = "edge-status@ybl"
+    red = _assess(client, user, RED_PAYEE, 3000)
+    status = client.post(f"/v1/risk/{red['case_id']}/status", json={"user_ref": user}).json()
+    assert status["hold_active"] and 0 < status["hold_seconds_left"] <= 1800 and not status["released"]
+    assert client.post(f"/v1/risk/{red['case_id']}/status", json={"user_ref": "someone-else@ybl"}).status_code == 403
+    client.post(f"/v1/cases/{red['case_id']}/release", json={"analyst_id": "analyst_alpha"})
+    status = client.post(f"/v1/risk/{red['case_id']}/status", json={"user_ref": user}).json()
+    assert (status["hold_active"], status["hold_seconds_left"], status["released"], status["status"]) == (False, 0, True, "open")
+    assert "analyst" not in str(status)  # who released it is not shown to the user
+
+
+def test_cancelling_on_the_phone_shows_cancelled_but_keeps_the_pause(client: TestClient):
+    user = "edge-cancel@ybl"
+    red = _assess(client, user, RED_PAYEE, 3000)
+    assert client.post(f"/v1/risk/{red['case_id']}/cancel", json={"user_ref": "someone-else@ybl"}).status_code == 403
+    assert client.post(f"/v1/risk/{red['case_id']}/cancel", json={"user_ref": user}).status_code == 200
+    case = client.get(f"/v1/cases/{red['case_id']}").json()
+    assert (case["status"], case["hold_active"]) == ("cancelled", False)
+    # Cancel and try again must not skip the pause: the retry reopens the same paused case.
+    retry = _assess(client, user, RED_PAYEE, 3000)
+    assert (retry["tier"], retry["case_id"]) == ("red", red["case_id"])
+    case = client.get(f"/v1/cases/{red['case_id']}").json()
+    assert (case["status"], case["hold_active"]) == ("open", True)

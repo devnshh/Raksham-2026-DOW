@@ -113,6 +113,21 @@ fun RedSmartPauseDialog(
         }
     }
 
+    // The server owns the hold: poll it so the countdown matches and an analyst's release (after a
+    // call back to the user) unlocks this screen at once. Offline, the phone's own timer applies.
+    var releasedByBank by remember { mutableStateOf(false) }
+    LaunchedEffect(decision.caseId) {
+        while (true) {
+            delay(3000L)
+            val status = RiskGate.caseStatus(decision.caseId) ?: continue
+            if (status.status != "open") break
+            HoldTimerManager.syncRemaining(if (status.released) 0 else status.hold_seconds_left)
+            remainingSeconds = HoldTimerManager.getRemainingSeconds()
+            if (status.released) { releasedByBank = true; break }
+            if (!status.hold_active) break
+        }
+    }
+
     val isHoldComplete = remainingSeconds <= 0
     val timeFormatted = HoldTimerManager.formatRemainingTime()
 
@@ -408,7 +423,7 @@ fun RedSmartPauseDialog(
                                     .semantics {
                                         liveRegion = LiveRegionMode.Polite
                                         contentDescription = if (isHoldComplete) {
-                                            "Continue after safety hold ended"
+                                            if (releasedByBank) "Continue, your bank released the safety hold" else "Continue after safety hold ended"
                                         } else {
                                             "Continue disabled, safety hold active: $timeFormatted remaining"
                                         }
@@ -422,7 +437,7 @@ fun RedSmartPauseDialog(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 if (isHoldComplete) {
                                     Text(
-                                        text = "Continue to PIN (Hold Ended)",
+                                        text = if (releasedByBank) "Continue to PIN (Released by bank)" else "Continue to PIN (Hold Ended)",
                                         style = MaterialTheme.typography.titleMedium
                                     )
                                 } else {
@@ -541,8 +556,10 @@ fun RedSmartPauseDialog(
                     },
                     text = {
                         BilingualText(
-                            en = "The 30-minute safety pause has elapsed. If anyone is coaching you on the phone, hang up now. Once the PIN is entered, funds cannot be reversed.",
-                            hi = "30 मिनट का सुरक्षा विराम पूरा हो गया। अगर फोन पर कोई आपको निर्देश दे रहा है, तो अभी फोन काट दें। PIN डालने के बाद पैसे वापस नहीं आ सकते।",
+                            en = if (releasedByBank) "Your bank checked this payment and ended the safety pause. If anyone is coaching you on the phone, hang up now. Once the PIN is entered, funds cannot be reversed."
+                                 else "The 30-minute safety pause has elapsed. If anyone is coaching you on the phone, hang up now. Once the PIN is entered, funds cannot be reversed.",
+                            hi = if (releasedByBank) "आपके बैंक ने इस भुगतान की जाँच करके सुरक्षा विराम हटा दिया है। अगर फोन पर कोई आपको निर्देश दे रहा है, तो अभी फोन काट दें। PIN डालने के बाद पैसे वापस नहीं आ सकते।"
+                                 else "30 मिनट का सुरक्षा विराम पूरा हो गया। अगर फोन पर कोई आपको निर्देश दे रहा है, तो अभी फोन काट दें। PIN डालने के बाद पैसे वापस नहीं आ सकते।",
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.verticalScroll(rememberScrollState())
                         )
