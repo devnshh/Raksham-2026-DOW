@@ -179,7 +179,7 @@ export function CaseView({ detail, row, cases, summary, now, result, actions }: 
             <Stat k="This payment" v={rupees(c.amount)} flag={!!ratio && ratio >= 2} tip="At least twice the usual amount counts as unusual" />
             <Stat k="Largest before" v={amounts?.amounts.length ? rupees(Math.max(...amounts.amounts)) : "n/a"} tip="Largest of the recent completed payments" />
           </div>
-          <Caps>{amounts?.payments.length ? `Amount ranges · last ${amounts.payments.length} payments${row.status === "completed" ? "" : " and this one"}` : "No payment history yet"}</Caps>
+          <Caps>{amounts?.payments.length ? `How much this payer usually sends · last ${amounts.payments.length} payments${row.status === "completed" ? "" : ", this one highlighted"}` : "No payment history yet"}</Caps>
           <PaymentHistory c={c} amounts={amounts} />
           <OtherChecks c={c} cases={cases} now={now} select={actions.select} />
         </Panel>
@@ -348,7 +348,7 @@ function PayersPerHour({ payers, payments, now }: { payers: PayeeView["new_payer
         </span>
         <span className={cn(latest >= 3 ? "font-medium text-[var(--risk-red-ink)]" : "text-muted-foreground")}>{latest} new in the last {SLOT_HOURS} h</span>
       </div>
-      <BarChart data={data} xDataKey="slot" aspectRatio="2.4 / 1" margin={{ top: 12, right: 8, bottom: 26, left: 8 }} barGap={0.28}>
+      <BarChart data={data} xDataKey="slot" aspectRatio="2.4 / 1" margin={{ top: 12, right: 8, bottom: 34, left: 8 }} barGap={0.28}>
         <Grid horizontal />
         <Bar dataKey="All payments" fill={BAR_ALL} lineCap="round" />
         <Bar dataKey="First-time payers" fill={BAR_NEW} lineCap="round" />
@@ -375,7 +375,7 @@ function PaymentHistory({ c, amounts }: { c: CaseRow; amounts: PayerAmounts | nu
   if (!amounts?.payments.length) return <div className="mt-2 h-[120px] rounded-lg border border-dashed text-center text-xs leading-[120px] text-muted-foreground">No completed payments yet</div>;
   return (
     <div className="mt-1">
-      <BarChart data={data} xDataKey="band" stacked aspectRatio="3 / 1" margin={{ top: 10, right: 8, bottom: 24, left: 8 }} barGap={0.32}>
+      <BarChart data={data} xDataKey="band" stacked aspectRatio="3 / 1" margin={{ top: 10, right: 8, bottom: 34, left: 8 }} barGap={0.32}>
         <Grid horizontal />
         <Bar dataKey="Past payments" fill="var(--primary)" lineCap={3} />
         <Bar dataKey="This payment" fill={TIER_COLOR[c.tier]} lineCap={3} />

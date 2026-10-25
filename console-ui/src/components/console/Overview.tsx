@@ -203,7 +203,7 @@ export function Insights({ cases, summary, setTierFilter, search }: {
     <>
       <section className="mb-4 grid grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-3">
         <Card title="Decisions by hour" aside="last 12 h">
-          <BarChart data={hours} xDataKey="hour" stacked aspectRatio="2.6 / 1" margin={{ top: 8, right: 8, bottom: 24, left: 8 }} barGap={0.3}>
+          <BarChart data={hours} xDataKey="hour" stacked aspectRatio="2.6 / 1" margin={{ top: 8, right: 8, bottom: 34, left: 8 }} barGap={0.3}>
             <Grid horizontal />
             <Bar dataKey="Passed" fill={HEX.green} lineCap={2} />
             <Bar dataKey="Amber" fill={HEX.amber} lineCap={2} />
