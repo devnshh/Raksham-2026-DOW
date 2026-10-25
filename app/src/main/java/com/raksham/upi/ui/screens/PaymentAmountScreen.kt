@@ -529,6 +529,9 @@ fun PaymentAmountScreen(
                         onPaymentSuccess(parsedAmount, contact, refId)
                     },
                     onDismiss = {
+                        // Closed without the PIN: nothing was paid, so the console shows it cancelled
+                        // instead of leaving the check open. Paying again runs a fresh check.
+                        currentDecision?.let { RiskGate.reportCancelledInBackground(it.caseId) }
                         showPinSheet = false
                     }
                 )

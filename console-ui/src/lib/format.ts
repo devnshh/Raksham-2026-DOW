@@ -59,5 +59,5 @@ export const disputed = (c: CaseRow) => c.dispute === "false_alarm_pending";
 export const needsAction = (c: CaseRow, now = Date.now()) => c.hold_active || disputed(c) || (c.tier === "red" && c.status === "open")
   || (c.tier === "decline" && now - new Date(c.created_at).getTime() < 3600e3);
 export const whyText = (c: CaseRow) => c.payee_confirmed_scam && c.tier !== "decline" ? "Payee since confirmed as a scam"
-  : c.status === "cancelled" ? "Payment cancelled" : c.tier === "green" ? "No warning" : disputed(c) ? "User reported a false alarm"
+  : c.tier === "green" ? "No warning" : disputed(c) ? "User reported a false alarm"
   : c.reasons.slice(0, 2).map(label).join(" · ") || TIER[c.tier];

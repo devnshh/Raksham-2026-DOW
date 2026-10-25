@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
-import type { Tier } from "@/lib/api";
+import type { CaseRow, Tier } from "@/lib/api";
 import { TIER } from "@/lib/format";
 
 const BADGE: Record<Tier, string> = {
@@ -23,6 +23,17 @@ export function ScamBadge() {
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[5px] bg-[var(--risk-violet)] px-[7px] py-[2px] text-[10.5px] font-semibold uppercase tracking-[.5px] text-white">
       Scam payee
+    </span>
+  );
+}
+
+/** What happened to the payment after the check: shown once the phone reports it paid or cancelled. */
+export function StatusBadge({ status }: { status: CaseRow["status"] }) {
+  if (status === "open") return null;
+  return (
+    <span className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded-[5px] border px-[7px] py-[1px] text-[10.5px] font-semibold uppercase tracking-[.5px]",
+      status === "completed" ? "border-[#d0d5dd] bg-[#f2f4f7] text-[#344054]" : "border-[#b7e0c5] bg-[var(--risk-green-soft)] text-[var(--risk-green-ink)]")}>
+      {status === "completed" ? "Paid" : "Cancelled"}
     </span>
   );
 }

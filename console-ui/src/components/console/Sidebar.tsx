@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import type { CaseRow } from "@/lib/api";
 import { ago, holdEnd, rupees, whyText } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { ScamBadge, Tip, TierBadge } from "./ui";
+import { ScamBadge, StatusBadge, Tip, TierBadge } from "./ui";
 
 export type View = "action" | "holds" | "disputes" | "all";
 export interface TierFilter { name: string; tiers: string[] }
@@ -76,6 +76,7 @@ export function Sidebar(props: {
               <span className="text-right text-[13.5px] font-semibold">{rupees(c.amount)}</span>
               <span className="flex min-w-0 items-center gap-[7px] overflow-hidden text-xs whitespace-nowrap text-muted-foreground">
                 {c.payee_confirmed_scam ? <ScamBadge /> : <TierBadge tier={c.tier} />}
+                <StatusBadge status={c.status} />
                 <span className="truncate">{whyText(c)}</span>
               </span>
               <span className="text-right text-[11.5px] whitespace-nowrap text-muted-foreground">{ago(c.created_at, now)}</span>

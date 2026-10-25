@@ -12,7 +12,7 @@ import { ChartTooltip } from "@/components/charts/tooltip";
 import type { CaseRow, PayeeView, PayerAmounts, Summary } from "@/lib/api";
 import { ago, CHANNEL, clock, EXPLAIN, FAMILY, HOT, holdEnd, hm, label, mmss, rupees, TIER, TIER_COLOR } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Caps, Panel, ScamBadge, Stat, Tip, TierBadge } from "./ui";
+import { Caps, Panel, ScamBadge, Stat, StatusBadge, Tip, TierBadge } from "./ui";
 
 export interface Detail { c: CaseRow; payee: PayeeView | null; amounts: PayerAmounts | null }
 export interface CaseActions {
@@ -52,7 +52,7 @@ export function CaseView({ detail, row, cases, summary, now, result, actions }: 
       {/* Header */}
       <div className="border-b border-[#eef0f4] bg-gradient-to-b from-[#fbfbfd] to-card px-5 pt-4 pb-3.5">
         <div className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
-          {scamPayee ? <ScamBadge /> : null}<TierBadge tier={c.tier} />
+          {scamPayee ? <ScamBadge /> : null}<TierBadge tier={c.tier} /><StatusBadge status={row.status} />
           <span>Case</span>
           <Tip text="Copy the case ID">
             <button type="button" onClick={() => { void navigator.clipboard?.writeText(c.case_id); actions.copied(c.case_id); }}
@@ -396,7 +396,7 @@ function OtherChecks({ c, cases, now, select }: { c: CaseRow; cases: CaseRow[]; 
         {others.map((x) => (
           <button key={x.case_id} type="button" onClick={() => select(x.case_id)}
             className="-mx-2 grid w-[calc(100%+16px)] grid-cols-[auto_minmax(0,1fr)_auto_44px] items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-[#f6f7f9]">
-            {x.payee_confirmed_scam ? <ScamBadge /> : <TierBadge tier={x.tier} />}
+            <span className="flex items-center gap-1">{x.payee_confirmed_scam ? <ScamBadge /> : <TierBadge tier={x.tier} />}<StatusBadge status={x.status} /></span>
             <span className="truncate font-mono text-xs">{x.payee_vpa}</span>
             <span className="font-semibold">{rupees(x.amount)}</span>
             <span className="text-right text-[11.5px] text-muted-foreground">{ago(x.created_at, now)}</span>
