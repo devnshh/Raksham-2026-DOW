@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HourglassTop
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -190,9 +191,11 @@ fun RedSmartPauseDialog(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Column(modifier = Modifier.riseIn(entered, 0)) {
+                            // Call wording only when a call, screen share or remote app was detected; a red on
+                            // a reported or mule account alone is about the account.
                             BilingualText(
-                                en = "Wait. This looks like a scam call.",
-                                hi = "रुकिए। यह धोखाधड़ी का फोन कॉल प्रतीत होता है।",
+                                en = if (decision.sessionUnderPressure) "Wait. This looks like a scam call." else "Wait. This account looks like a scam.",
+                                hi = if (decision.sessionUnderPressure) "रुकिए। यह धोखाधड़ी का फोन कॉल प्रतीत होता है।" else "रुकिए। यह खाता धोखाधड़ी का लगता है।",
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = colors.onErrorContainer,
                                 fontWeight = FontWeight.Bold,
@@ -355,13 +358,16 @@ fun RedSmartPauseDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 56.dp)
-                                    .semantics { contentDescription = "Hang up call and cancel payment" }
+                                    .semantics {
+                                        contentDescription = if (decision.sessionUnderPressure) "Hang up call and cancel payment" else "Cancel payment"
+                                    }
                             ) {
-                                Icon(Icons.Default.CallEnd, contentDescription = null, modifier = Modifier.size(24.dp))
+                                Icon(if (decision.sessionUnderPressure) Icons.Default.CallEnd else Icons.Default.Close,
+                                    contentDescription = null, modifier = Modifier.size(24.dp))
                                 Spacer(modifier = Modifier.width(12.dp))
                                 BilingualLabel(
-                                    en = "Hang Up & Cancel Payment",
-                                    hi = "फोन काटें और भुगतान रद्द करें"
+                                    en = if (decision.sessionUnderPressure) "Hang Up & Cancel Payment" else "Cancel Payment",
+                                    hi = if (decision.sessionUnderPressure) "फोन काटें और भुगतान रद्द करें" else "भुगतान रद्द करें"
                                 )
                             }
 
