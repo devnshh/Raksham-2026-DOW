@@ -11,6 +11,7 @@ Simulation results on an unseen synthetic world, not real-world accuracy. Warnin
 | 1 | 2026-10-24 06:41 | 8ac337d136 | 0502ccf91630 | f5fa4fcb5910 | 29.4% / 95.1% | 0.7% / 90.2% / 42.14 | 95.3% / 71.3% | `ml/results/holdout_run1.json` |
 | 2 | 2026-10-24 16:03 | e5ff5d8154 | cfd7d027a7a9 | 8131fb36a3e7 | 29.9% / 96.5% | 6.2% / 95.8% / 4.92 | 96.3% / 72.0% | `ml/results/holdout_run2.json` |
 | 3 | 2026-10-24 21:10 | 3e1791a590 | cfd7d027a7a9 | 8131fb36a3e7 | 29.9% / 96.5% | 5.7% / 95.8% / 5.38 | 96.3% / 72.0% | `ml/results/holdout_run3.json` |
+| 4 | 2026-10-25 00:05 | 3ed8c9bdfe | cfd7d027a7a9 | 8131fb36a3e7 | 28.8% / 96.5% | 9.5% / 96.5% / 3.25 | 95.4% / 72.7% | `ml/results/holdout_run4.json` |
 
 ## Run 1: named failure cases
 
@@ -105,3 +106,15 @@ Written before run 4. Chosen on validation world 33 and kept only if it held on 
 - **Dropped:** milder stand-in texts for note labels (lost a scam on world 33), dropping "deposit" and "commission" as task words (lost a Rs 335 scam on world 55), scoring a saved-contact call as no call (+5 honest red pauses on world 33).
 - **Validation, model plus policy, before and after:** warnings per 1,000 5.49 / 5.40 / 5.64 to 3.31 / 3.26 / 3.51; false alarms 2,258 / 2,198 / 2,317 to 1,304 / 1,272 / 1,392; scam payments warned 139 / 133 / 130 to 140 / 133 / 131; honest red pauses unchanged (5 / 4 / 9).
 - Run 4 is reported whatever it shows.
+
+## Run 4: named failure cases
+
+Written after run 4 from `ml/results/holdout_run4.json`. Nothing was changed in response.
+
+Model plus policy: recall 96.5% (run 3: 95.8%), precision 9.5% (5.7%), 3.25 warnings per 1,000 (5.38), false-alarm rate 0.29% (0.51%); red precision 95.4% (96.3%), recall 72.7% (72.0%), 5 honest red pauses (5). Every journey got a warning; 5 scam payments were missed (run 3: 6): 2 plain investment, 2 calm-victim task scam, 1 plain KYC link, all below the model cut-off with no call. The one the eligibility gate skipped in run 3 is now warned. Model alone: precision 28.8% (29.9%), recall 96.5% (unchanged); the note-risk floor changes its input, not the model.
+
+- **Screen sharing and remote-access installs** are still the largest source (504 and 171 false alarms, 51% of the total), down from 1,314 and 442: 38% of those payments still warn (payees not yet paid twice over a week, or a non-contact on the call), against 100% in run 3.
+- **Costs that went up:** rent to a new landlord while on a call, 5 of 14 warned (run 3: 0 of 14), the price of the new rule for a non-contact caller with a large first payment (the landlord is not a saved contact); second-hand purchases from 6.1% to 8.1% warned (142), from the stranger floor applying until a payee is trusted. Emergency payments to a new person: 35.6% (34.5%).
+- **On-call honest payments:** 0.75% warned (0.79%). Payments from links the simulated feed wrongly marks bad: 76 (86).
+- **Fairness:** every age band, language, phone tier and screen-reader group is between 0.27% and 0.32% (overall 0.29%); the 60+ band is the highest.
+- **Unseen scam types** (model alone, retrained without that type; changed because the note input changed): digital arrest 1.00, customer care 1.00, OTP takeover 1.00, investment 0.91, task scam 0.75, KYC link 0.71, fake QR 0.47 (run 3: 0.60).
