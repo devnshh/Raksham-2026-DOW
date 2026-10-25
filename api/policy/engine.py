@@ -21,6 +21,12 @@ def strong_coercion(features: Dict[str, Any]) -> bool:
     return bool(features.get("screen_shared") or features.get("remote_app_new"))
 
 
+def verified_unreported(features: Dict[str, Any]) -> bool:
+    """A verified merchant that nobody has reported. Once reported, the verified badge no longer exempts
+    it from the fan-in, stranger and collect checks (a verified account can turn out to be a mule)."""
+    return bool(features.get("payee_verified")) and not (features.get("payee_reports_prior") or 0) > 0
+
+
 def reported_or_bad_link(features: Dict[str, Any]) -> bool:
     """The payee has been reported or the payment came from a known-bad link: a shortcut that skips
     the model (trusted payee, eligibility gate) must not apply."""
@@ -149,8 +155,7 @@ class PolicyEngine:
             new_payers = int(features.get("payee_new_payers_24h", 0))
         except (ValueError, TypeError):
             new_payers = 0
-        verified = features.get("payee_verified", False)
-        if new_payers >= 5 and not verified:
+        if new_payers >= 5 and not verified_unreported(features):
             fam_b += 0.40
         try:
             reports = int(features.get("payee_reports_prior", 0))
@@ -226,10 +231,10 @@ class PolicyEngine:
             float(self.config.get("eligibility_gate", {}).get("bypass_on_lookalike", 0.70))
         from_contacts = features.get("entry_channel") == "contact" and not unknown_caller and not brand_like
         return (bool(features.get("payee_first_time")) or not established) and not from_contacts \
-            and not features.get("payee_verified") and amount >= floor
+            and not verified_unreported(features) and amount >= floor
 
     def _suspicious_collect(self, features: Dict[str, Any]) -> bool:
-        if features.get("entry_channel") != "merchant_collect" or features.get("payee_verified"):
+        if features.get("entry_channel") != "merchant_collect" or verified_unreported(features):
             return False
         return not self.config.get("collect_amber", {}).get("needs_receive_note", True) \
             or features.get("note_intent") in ("receive", "refund")

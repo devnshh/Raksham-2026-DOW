@@ -118,3 +118,7 @@ Model plus policy: recall 96.5% (run 3: 95.8%), precision 9.5% (5.7%), 3.25 warn
 - **On-call honest payments:** 0.75% warned (0.79%). Payments from links the simulated feed wrongly marks bad: 76 (86).
 - **Fairness:** every age band, language, phone tier and screen-reader group is between 0.27% and 0.32% (overall 0.29%); the 60+ band is the highest.
 - **Unseen scam types** (model alone, retrained without that type; changed because the note input changed): digital arrest 1.00, customer care 1.00, OTP takeover 1.00, investment 0.91, task scam 0.75, KYC link 0.71, fake QR 0.47 (run 3: 0.60).
+
+## After run 4: changes with no effect on the validation replay
+
+Not a new holdout run. Fixes from the edge-case review that change no tier on validation worlds 33, 44 and 55 (replayed): a reported verified merchant loses its fan-in, stranger and collect exemptions; "This was me" without a known vouched amount lowers nothing, and the cap counts the last 24 hours; payment hours are stored and scored in Indian time whatever the server's timezone (the replay uses the simulator's own hours, so this one does not reach it).

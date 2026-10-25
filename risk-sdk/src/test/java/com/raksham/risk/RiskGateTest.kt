@@ -88,6 +88,31 @@ class RiskGateTest {
     }
 
     @Test
+    fun testUnknownTierIsNeverGreen() = runBlocking {
+        for (tier in listOf("hold", "", "GREEN ", "red ")) {
+            val server = java.net.ServerSocket(0)
+            Thread {
+                runCatching {
+                    server.accept().use { s ->
+                        s.getInputStream().read(ByteArray(4096))
+                        val body = """{"tier":"$tier","reasons":[],"template_id":"t","hold_minutes":0,"case_id":"c-1"}"""
+                        s.getOutputStream().write(("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n" +
+                            "Content-Length: ${body.length}\r\n\r\n$body").toByteArray())
+                    }
+                }
+            }.apply { isDaemon = true; start() }
+            RiskGate.setBaseUrl("http://127.0.0.1:${server.localPort}")
+            val decision = RiskGate.check(PaymentRequest(payeeVpa = "some.payee@oksbi", amount = 1500.0))
+            when (tier.trim()) {
+                "GREEN" -> assertEquals(RiskTier.GREEN, decision.tier)
+                "red" -> assertEquals(RiskTier.RED, decision.tier)
+                else -> assertTrue("tier '$tier' gave ${decision.tier}", decision.tier == RiskTier.AMBER && decision.isCheckUnavailable)
+            }
+            server.close()
+        }
+    }
+
+    @Test
     fun testScriptedSignalSourceSwapping() {
         val scripted = ScriptedSignalSource(
             SessionSignals(on_call = true, screen_shared = true, app_switches = 5)

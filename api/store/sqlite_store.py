@@ -8,6 +8,7 @@ import math
 import json
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional, Tuple, List
+from zoneinfo import ZoneInfo
 
 from api.db.connection import get_db
 from api.store.interface import BaseFeatureStore
@@ -21,6 +22,15 @@ UNKNOWN_AGE_CATEGORIES = {"unknown", "reported", "flagged"}
 NEUTRAL_UNKNOWN_AGE_DAYS = 365.0
 # Reporter trust: full weight at 30 days and 5 completed payments; newer accounts together add at most this.
 NEW_REPORTERS_CAP = 0.5
+
+
+# Payment hours are Indian local time everywhere (the model and the seeds use them), whatever the server's
+# timezone. Storing the UTC hour while scoring the server's local hour made a user's usual hour look unusual.
+IST = ZoneInfo("Asia/Kolkata")
+
+
+def local_hour(ts: Optional[datetime] = None) -> int:
+    return (ts or datetime.now(timezone.utc)).astimezone(IST).hour
 
 
 def reporter_weight(age_days: float, payments: int) -> float:
@@ -58,7 +68,7 @@ class SQLiteFeatureStore(BaseFeatureStore):
         day_ms = 86_400_000
 
         if current_hour is None:
-            current_hour = datetime.now().hour
+            current_hour = local_hour()
 
         with get_db(self.db_path) as conn:
             cursor = conn.cursor()
@@ -699,7 +709,7 @@ class SQLiteFeatureStore(BaseFeatureStore):
                 INSERT INTO transactions (user_id, payee_vpa, amount, hour, timestamp_ms, created_at)
                 VALUES (?, ?, ?, ?, ?, ?);
                 """,
-                (clean_payer, clean_payee, float(amount), now_dt.hour, now_ms, created_str)
+                (clean_payer, clean_payee, float(amount), local_hour(now_dt), now_ms, created_str)
             )
 
         return payment_id or 1
@@ -763,17 +773,31 @@ class SQLiteFeatureStore(BaseFeatureStore):
 
     def update_case_decision(self, case_id: str, tier: str, reasons: List[str], template_id: str,
                              hold_minutes: int, evidence_updates: Dict[str, Any]) -> None:
-        """Updates a case's decision (questionnaire can only raise it) and merges evidence."""
+        """Updates a case's decision (questionnaire can only raise it) and merges evidence. The merge
+        happens inside one UPDATE, so two concurrent updates (a payment completing while a report or
+        questionnaire lands) cannot overwrite each other's keys. Keys are internal names, never user input."""
+        sets = ", ".join(f"'$.\"{k}\"', json(?)" for k in evidence_updates)
+        evidence_sql = f"json_set(COALESCE(evidence_pack, '{{}}'), {sets})" if evidence_updates else "evidence_pack"
         with get_db(self.db_path) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT evidence_pack FROM cases WHERE case_id = ?;", (case_id,))
-            row = cursor.fetchone()
-            evidence = json.loads(row["evidence_pack"] or "{}") if row else {}
-            evidence.update(evidence_updates)
-            cursor.execute(
-                """
-                UPDATE cases SET tier = ?, reasons = ?, template_id = ?, hold_minutes = ?, evidence_pack = ?
+            conn.execute(
+                f"""
+                UPDATE cases SET tier = ?, reasons = ?, template_id = ?, hold_minutes = ?, evidence_pack = {evidence_sql}
                 WHERE case_id = ?;
                 """,
-                (tier, json.dumps(reasons), template_id, hold_minutes, json.dumps(evidence), case_id)
+                (tier, json.dumps(reasons), template_id, hold_minutes,
+                 *[json.dumps(v) for v in evidence_updates.values()], case_id)
             )
+
+    def claim_completion(self, case_id: str) -> bool:
+        """Marks an open case as paid in one statement: True only for the call that did it, False if it was
+        already paid or cancelled. A double tap or a retry must not record two payments."""
+        with get_db(self.db_path) as conn:
+            cur = conn.execute(
+                """
+                UPDATE cases SET evidence_pack = json_set(evidence_pack, '$.completed', json('true'), '$.completed_at', ?)
+                WHERE case_id = ? AND json_extract(evidence_pack, '$.completed') IS NULL
+                  AND json_extract(evidence_pack, '$.cancelled') IS NULL;
+                """,
+                (datetime.now(timezone.utc).isoformat(), case_id)
+            )
+            return cur.rowcount == 1

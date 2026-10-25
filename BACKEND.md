@@ -68,6 +68,8 @@ scripts\start_all.bat
 ```
 
 The scripts generate a random `MODEL_SERVICE_KEY` (shared by both services) and `SATARK_ANALYST_KEY` for each run unless you set them, and print the analyst key. No key is hard-coded anywhere.
+
+With one shared analyst key (the demo) the analyst ID typed in the console is trusted, so one key holder could act as both analysts. For real use set per-analyst keys, `SATARK_ANALYST_KEYS="alice:<key>,bob:<key>"`: the analyst ID then comes from the key, the shared key stops working, and a scam confirmation needs two different keys.
 This script:
 1. Checks port 8001; if free, launches `model_service` on port 8001.
 2. Polls `GET http://127.0.0.1:8001/health` until HTTP 200 is returned.

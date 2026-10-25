@@ -476,12 +476,13 @@ def complete_payment(
     if evidence.get("cancelled"):
         raise HTTPException(status_code=409, detail="This payment was cancelled when it was reported as a scam")
 
+    if not store.claim_completion(req.case_id):
+        # Another request completed or cancelled it between the checks above and now.
+        if json.loads(store.get_case(req.case_id)["evidence_pack"] or "{}").get("cancelled"):
+            raise HTTPException(status_code=409, detail="This payment was cancelled when it was reported as a scam")
+        return PaymentCompleteResponse(status="already_recorded", case_id=req.case_id)
+
     user_id = row["user_id"]
     store.record_payment(payer_id=user_id, payee_vpa=row["payee_vpa"], amount=float(row["amount"]))
     store.record_session(user_id, req.typing_ms, req.pauses, req.pin_secs)
-    store.update_case_decision(
-        req.case_id, row["tier"], json.loads(row["reasons"] or "[]"), row["template_id"],
-        int(row["hold_minutes"]),
-        {"completed": True, "completed_at": datetime.now(timezone.utc).isoformat()}
-    )
     return PaymentCompleteResponse(status="recorded", case_id=req.case_id)

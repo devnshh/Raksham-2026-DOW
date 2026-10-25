@@ -7,7 +7,7 @@ Confirm and clear are both written to the hash-chained audit log.
 """
 
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends
 
@@ -15,7 +15,7 @@ from api.models import ConfirmScamRequest, ConfirmScamResponse
 from api.store.sqlite_store import SQLiteFeatureStore
 from api.store.audit_store import AuditLogStore
 from api.routers.assess import get_audit_store, get_feature_store
-from api.security import require_analyst_key
+from api.security import acting_analyst, require_analyst_key
 
 router = APIRouter(prefix="/v1", tags=["payees"], dependencies=[Depends(require_analyst_key)])
 
@@ -35,25 +35,27 @@ def confirm_scam_payee(
     vpa: str,
     req: ConfirmScamRequest,
     store: SQLiteFeatureStore = Depends(get_feature_store),
-    audit: AuditLogStore = Depends(get_audit_store)
+    audit: AuditLogStore = Depends(get_audit_store),
+    bound: Optional[str] = Depends(require_analyst_key)
 ) -> ConfirmScamResponse:
     """
     Analyst confirmation for scam payee.
     Requires TWO DISTINCT analyst IDs before taking effect (is_confirmed_scam=True).
     """
     clean_vpa = vpa.strip().lower()
+    analyst = acting_analyst(bound, req.analyst_id)
     total_confirmations, is_confirmed = store.confirm_scam_payee(
         payee_vpa=clean_vpa,
-        analyst_id=req.analyst_id,
+        analyst_id=analyst,
         notes=req.notes
     )
-    _audit_analyst_action(audit, "analyst_confirm", clean_vpa, req.analyst_id, "ANALYST_CONFIRMATION")
+    _audit_analyst_action(audit, "analyst_confirm", clean_vpa, analyst, "ANALYST_CONFIRMATION")
 
     status = "analyst_confirmed_scam" if is_confirmed else "pending_second_analyst"
 
     return ConfirmScamResponse(
         payee_vpa=clean_vpa,
-        analyst_id=req.analyst_id,
+        analyst_id=analyst,
         total_confirmations=total_confirmations,
         is_confirmed_scam=is_confirmed,
         status=status
@@ -65,11 +67,13 @@ def clear_payee(
     vpa: str,
     req: ConfirmScamRequest,
     store: SQLiteFeatureStore = Depends(get_feature_store),
-    audit: AuditLogStore = Depends(get_audit_store)
+    audit: AuditLogStore = Depends(get_audit_store),
+    bound: Optional[str] = Depends(require_analyst_key)
 ) -> Dict[str, Any]:
     """One analyst can clear a payee: payments to it are no longer declined. Reports stay on record."""
     clean_vpa = vpa.strip().lower()
+    analyst = acting_analyst(bound, req.analyst_id)
     withdrawn = store.clear_payee(clean_vpa)
-    _audit_analyst_action(audit, "analyst_clear", clean_vpa, req.analyst_id, "ANALYST_CLEARED")
-    return {"payee_vpa": clean_vpa, "analyst_id": req.analyst_id, "withdrawn_confirmations": withdrawn,
+    _audit_analyst_action(audit, "analyst_clear", clean_vpa, analyst, "ANALYST_CLEARED")
+    return {"payee_vpa": clean_vpa, "analyst_id": analyst, "withdrawn_confirmations": withdrawn,
             "is_confirmed_scam": False, "status": "cleared"}

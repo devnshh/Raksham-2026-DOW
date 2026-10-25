@@ -100,8 +100,9 @@ class ReportResponse(BaseModel):
 
 
 class ConfirmScamRequest(BaseModel):
-    """Analyst confirmation request payload. Two distinct analysts required."""
-    analyst_id: str
+    """Analyst confirmation request payload. Two distinct analysts required. Ignored when the key itself
+    names the analyst (per-analyst keys)."""
+    analyst_id: Optional[str] = None
     notes: Optional[str] = ""
 
 

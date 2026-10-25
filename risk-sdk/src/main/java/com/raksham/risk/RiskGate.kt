@@ -55,11 +55,13 @@ object RiskGate {
             return fallbackUnavailableDecision(payment)
         }
 
-        val tier = when (response.tier.lowercase()) {
+        val tier = when (response.tier.trim().lowercase()) {
             "decline" -> RiskTier.DECLINE
             "red" -> RiskTier.RED
             "amber" -> RiskTier.AMBER
-            else -> RiskTier.GREEN
+            "green" -> RiskTier.GREEN
+            // A tier this app does not know (a newer server, a proxy, a corrupted reply) is never green.
+            else -> return fallbackUnavailableDecision(payment)
         }
 
         val plainReasons = response.reasons.map { code ->

@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import DB_PATH, POLICY_VERSION
-from api.security import analyst_key
+from api.security import analyst_key, analyst_keys
 from api.db.seed import seed_data
 from api.policy.scorer import get_satark_scorer
 from api.routers import (
@@ -32,7 +32,8 @@ from api.routers import (
 async def lifespan(app: FastAPI):
     # Startup: Initialize and seed database (no-op if already seeded)
     seed_data(DB_PATH)
-    analyst_key()  # logs a generated key once if SATARK_ANALYST_KEY is unset
+    if not analyst_keys():
+        analyst_key()  # logs a generated key once if SATARK_ANALYST_KEY is unset
     # Preload SatarkScorer model once at startup
     get_satark_scorer()
     yield
